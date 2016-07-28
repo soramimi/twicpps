@@ -1,0 +1,9 @@
+build
+Debug
+Release
+*.user
+*.sdf
+*.suo
+*.out
+*.o
+keys/soramimi*
