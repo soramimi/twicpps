@@ -21,7 +21,6 @@ static bool http_request(const char *u, const char *p, std::string *reply = 0)
 		reply->clear();
 	}
 	WebContext webcx;
-	WebContext webcx2;
 #if 0
 	webcx.load_cacert("C:\\develop\\twicpps\\cacert.pem");
 #endif

@@ -1,6 +1,6 @@
 
-#ifndef __WebClient2_h
-#define __WebClient2_h
+#ifndef WEBCLIENT_H_
+#define WEBCLIENT_H_
 
 #include <vector>
 #include <string>

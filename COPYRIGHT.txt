@@ -1,0 +1,8 @@
+twicpps, simple tweet program in C++
+Copyright (C) 2016 S.Fuchita
+web: http://www.soramimi.jp/
+mail: fi7s-fct@asahi-net.or.jp
+twitter: @soramimi_jp
+
+twicpps: New BSD license
+liboauth: MIT license
