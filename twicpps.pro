@@ -20,5 +20,4 @@ HEADERS += \
     src/oauth.h \
     src/sha1.h \
     src/tweet.h \
-    src/webclient.h \
-    keys/mykey.h
+    src/webclient.h

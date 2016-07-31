@@ -4,7 +4,9 @@
 #include "webclient.h"
 #include "oauth.h"
 
-#include "../keys/mykey.h"
+//#include "../keys/mykey.h"
+//#include "../keys/soramimi_jp.h"
+#include "../keys/soramimi_jp_bot.h"
 
 static void str_append(std::string *to, std::string const &s)
 {

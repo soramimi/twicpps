@@ -7,25 +7,25 @@
 class TwitterClient {
 private:
 	struct Data {
-		std::string c_key;
-		std::string c_sec;
-		std::string t_key;
-		std::string t_sec;
+		std::string consumer_key;
+		std::string consumer_sec;
+		std::string accesstoken;
+		std::string accesstoken_sec;
 	} data;
-	char const *c_key() const { return data.c_key.c_str(); }
-	char const *c_sec() const { return data.c_sec.c_str(); }
-	char const *t_key() const { return data.t_key.c_str(); }
-	char const *t_sec() const { return data.t_sec.c_str(); }
+	char const *c_key() const { return data.consumer_key.c_str(); }
+	char const *c_sec() const { return data.consumer_sec.c_str(); }
+	char const *t_key() const { return data.accesstoken.c_str(); }
+	char const *t_sec() const { return data.accesstoken_sec.c_str(); }
 public:
 	TwitterClient()
 	{
 	}
-	TwitterClient(std::string const &c_key, std::string const &c_sec, std::string const &t_key, std::string const &t_sec)
+	TwitterClient(std::string const &consumer_key, std::string const &consumer_sec, std::string const &accesstoken, std::string const &accesstoken_sec)
 	{
-		data.c_key = c_key;
-		data.c_sec = c_sec;
-		data.t_key = t_key;
-		data.t_sec = t_sec;
+		data.consumer_key = consumer_key;
+		data.consumer_sec = consumer_sec;
+		data.accesstoken = accesstoken;
+		data.accesstoken_sec = accesstoken_sec;
 	}
 	bool tweet(std::string message);
 };

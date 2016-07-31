@@ -12,7 +12,6 @@
 
 #include "oauth.h"
 #include "webclient.h"
-#include "webclient.h"
 #include "tweet.h"
 
 static bool http_request(const char *u, const char *p, std::string *reply = 0)
