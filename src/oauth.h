@@ -223,7 +223,7 @@ void oauth_split_post_paramters(const char *url, char ***argv, short qesc);
  * @return url string needs to be freed by the caller.
  *
  */
-std::string oauth_serialize_url (std::vector<std::string> const &argv, int start);
+std::string oauth_serialize_url(std::vector<std::string> const &argv, int start);
 
 /**
  * encode query parameters from an array.
@@ -238,7 +238,7 @@ std::string oauth_serialize_url (std::vector<std::string> const &argv, int start
  *   4: double quotation marks are added around values (use with sep ", " for HTTP Authorization header).
  * @return url string needs to be freed by the caller.
  */
-std::string oauth_serialize_url_sep (std::vector<std::string> const &argv, int start, char const *sep, int mod);
+std::string oauth_serialize_url_sep (std::vector<std::string> const &argv, int start, std::string const &sep, int mod);
 
 /**
  * build a query parameter string from an array.
@@ -338,7 +338,7 @@ std::string oauth_sign_url (const char *url, std::string *postargs,
   const char *c_key, //< consumer key - posted plain text
   const char *c_sec, //< consumer secret - used as 1st part of secret-key 
   const char *t_key, //< token key - posted plain text in URL
-  const char *t_sec //< token secret - used as 2st part of secret-key
+  const char *t_sec  //< token secret - used as 2st part of secret-key
   ) attribute_deprecated;
 
 
@@ -424,7 +424,7 @@ std::string oauth_sign_array2 (std::vector<std::string> *argvp,
   const char *c_key, //< consumer key - posted plain text
   const char *c_sec, //< consumer secret - used as 1st part of secret-key 
   const char *t_key, //< token key - posted plain text in URL
-  const char *t_sec //< token secret - used as 2st part of secret-key
+  const char *t_sec  //< token secret - used as 2st part of secret-key
   );
 
 /**

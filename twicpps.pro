@@ -14,10 +14,14 @@ SOURCES += \
     src/oauth.cpp \
     src/tweet.cpp \
     src/sha1.c \
-    src/webclient.cpp
+    src/webclient.cpp \
+    src/urlencode.cpp \
+    src/charvec.cpp
 
 HEADERS += \
     src/oauth.h \
     src/sha1.h \
     src/tweet.h \
-    src/webclient.h
+    src/webclient.h \
+    src/urlencode.h \
+    src/charvec.h

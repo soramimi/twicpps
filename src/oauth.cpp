@@ -384,7 +384,7 @@ void oauth_split_url_parameters(const char *url, std::vector<std::string> *argv)
  * @return url string needs to be freed by the caller.
  *
  */
-std::string oauth_serialize_url (std::vector<std::string> const &argv, int start)
+std::string oauth_serialize_url(std::vector<std::string> const &argv, int start)
 {
 	return oauth_serialize_url_sep(argv, start, "&", 0);
 }
@@ -402,11 +402,10 @@ std::string oauth_serialize_url (std::vector<std::string> const &argv, int start
  *   4: add double quotation marks around values (use with sep=", " to generate HTTP Authorization header).
  * @return url string needs to be freed by the caller.
  */
-std::string oauth_serialize_url_sep(std::vector<std::string> const &argv, int start, char const *sep, int mod)
+std::string oauth_serialize_url_sep(std::vector<std::string> const &argv, int start, std::string const &sep, int mod)
 {
 	int i;
 	int first = 0;
-	int seplen = strlen(sep);
 	std::string query;
 	for (i = start; i < (int)argv.size(); i++) {
 		std::string tmp;
@@ -419,8 +418,11 @@ std::string oauth_serialize_url_sep(std::vector<std::string> const &argv, int st
 		} else {
 			char *p = strchr((char *)argv[i].c_str(), '=');
 			if (p) {
-				tmp = oauth_url_escape(std::string(argv[i].c_str(), (char const *)p).c_str());
-				std::string t2 = oauth_url_escape(p + 1);
+				std::string t1(argv[i].c_str(), (char const *)p);
+				std::string t2 = p + 1;
+				t2 = oauth_url_escape(t2.c_str());
+				t1 = oauth_url_escape(t1.c_str());
+				tmp = t1;
 				tmp += "=";
 				if (mod & 4) tmp += "\"";
 				tmp += t2;
@@ -586,7 +588,7 @@ std::string oauth_sign_url(
 	const char *c_key, //< consumer key - posted plain text
 	const char *c_sec, //< consumer secret - used as 1st part of secret-key 
 	const char *t_key, //< token key - posted plain text in URL
-	const char *t_sec //< token secret - used as 2st part of secret-key
+	const char *t_sec  //< token secret - used as 2st part of secret-key
 )
 {
 	return oauth_sign_url2(url, postargs, method, NULL, c_key, c_sec, t_key, t_sec);
@@ -715,7 +717,7 @@ std::string oauth_sign_array2(
 	oauth_sign_array2_process(argvp, postargs, method, http_method, c_key, c_sec, t_key, t_sec);
 
 	// build URL params
-	result = oauth_serialize_url(*argvp, (postargs?1:0));
+	result = oauth_serialize_url(*argvp, (postargs ? 1 : 0));
 
 	if (postargs) { 
 		*postargs = result;

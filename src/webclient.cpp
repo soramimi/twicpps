@@ -205,28 +205,36 @@ static inline std::string to_s(size_t n)
 
 void WebClient::set_default_header(URL const &uri, Post const *post, RequestOption const &opt)
 {
-	add_header("Host: " + uri.host());
-	add_header("User-Agent: " USER_AGENT);
-	add_header("Accept: */*");
+	std::vector<std::string> header;
+	auto AddHeader = [&](std::string const &s){
+		header.push_back(s);
+	};
+	AddHeader("Host: " + uri.host());
+	AddHeader("User-Agent: " USER_AGENT);
+	AddHeader("Accept: */*");
 	if (opt.keep_alive) {
-		add_header("Connection: keep-alive");
+		AddHeader("Connection: keep-alive");
 	} else {
-		add_header("Connection: close");
+		AddHeader("Connection: close");
 	}
 	if (post) {
-		add_header("Content-Length: " + to_s(post->data.size()));
+		AddHeader("Content-Length: " + to_s(post->data.size()));
 		std::string ct = "Content-Type: ";
 		if (post->content_type.empty()) {
 			ct += "application/octet-stream";
-		} else {
+		} else if (post->content_type == CT_MULTIPART_FORM_DATA) {
 			ct += post->content_type;
 			if (!post->boundary.empty()) {
 				ct += "; boundary=";
 				ct += post->boundary;
 			}
+		} else {
+			ct += post->content_type;
 		}
-		add_header(ct);
+		AddHeader(ct);
 	}
+	header.insert(header.end(), pv->request_header.begin(), pv->request_header.end());
+	pv->request_header = std::move(header);
 }
 
 std::string WebClient::make_http_request(URL const &uri, Post const *post)
@@ -652,6 +660,7 @@ bool WebClient::https_get(const URL &uri, Post const *post, RequestOption const 
 	set_default_header(uri, post, opt);
 
 	std::string request = make_http_request(uri, post);
+	fputs(request.c_str(), stderr);
 
 	auto SEND = [&](SSL *ssl, char const *ptr, int len){
 		while (len > 0) {
@@ -673,7 +682,9 @@ bool WebClient::https_get(const URL &uri, Post const *post, RequestOption const 
 	pv->content_offset = 0;
 
 	receive_(opt, [&](char *ptr, int len){
-		return SSL_read(pv->ssl, ptr, len);
+		int n = SSL_read(pv->ssl, ptr, len);
+		fwrite(ptr, 1, n, stderr);
+		return n;
 	}, out);
 
 	if (!pv->keep_alive) close();
@@ -880,17 +891,50 @@ void WebClient::make_application_www_form_urlencoded(char const *data, size_t si
 	write(&out->data, data, size);
 }
 
+#include <io.h>
+#include <fcntl.h>
+#include <sys/stat.h>
+#include "urlencode.h"
+
 void WebClient::make_multipart_form_data(char const *data, size_t size, WebClient::Post *out)
 {
+	std::vector<char> img;
+	int fd = open("Z:\\img\\icon\\yuno.png", O_RDONLY | O_BINARY);
+	if (fd >= 0) {
+		struct stat st;
+		if (fstat(fd, &st) == 0 && st.st_size > 0) {
+			img.resize(st.st_size);
+			read(fd, &img[0], st.st_size);
+		}
+		::close(fd);
+	}
+
 	*out = WebClient::Post();
 	out->content_type = CT_MULTIPART_FORM_DATA;
-	out->boundary = "uploadbinary";
+	out->boundary = "----------boundary";
+
+#if 0
 	write(&out->data, "--");
 	write(&out->data, out->boundary);
 	write(&out->data, "\r\n");
 	write(&out->data, "Content-Disposition: form-data; name=\"VALUE\"; filename=\"value.bin\"\r\nContent-Type: application/octet-stream\r\nContent-Transfer-Encoding: binary\r\n\r\n");
 	write(&out->data, data, size);
-	write(&out->data, "\r\n--");
+	write(&out->data, "\r\n");
+#endif
+
+#if 1
+	write(&out->data, "--");
+	write(&out->data, out->boundary);
+	write(&out->data, "\r\n");
+	write(&out->data, "Content-Disposition: form-data; name=\"media\"\r\n");
+	write(&out->data, "Content-Type: image/png\r\n");
+	write(&out->data, "Content-Transfer-Encoding: binary\r\n");
+	write(&out->data, "\r\n");
+	write(&out->data, &img[0], img.size());
+	write(&out->data, "\r\n");
+#endif
+
+	write(&out->data, "--");
 	write(&out->data, out->boundary);
 	write(&out->data, "--\r\n");
 }

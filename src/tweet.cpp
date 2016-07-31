@@ -13,8 +13,10 @@
 #include "oauth.h"
 #include "webclient.h"
 #include "tweet.h"
+#include "charvec.h"
+#include "urlencode.h"
 
-static bool http_request(const char *u, const char *p, std::string *reply = 0)
+static bool http_request(const char *u, const char *p, std::string *reply, bool upload)
 {
 	if (reply) {
 		reply->clear();
@@ -27,7 +29,40 @@ static bool http_request(const char *u, const char *p, std::string *reply = 0)
 	WebClient::URL uri(u);
 	if (p) {
 		WebClient::Post post;
-		WebClient::make_application_www_form_urlencoded(p, strlen(p), &post);
+		if (upload) {
+			std::vector<char> vec;
+			char const *begin = p;
+			char const *end = begin + strlen(begin);
+			char const *ptr = begin;
+			char const *left = ptr;
+			while (1) {
+				int c = -1;
+				if (ptr < end) {
+					c = *ptr & 0xff;
+				}
+				if (c == '&' || c == -1) {
+					if (left < ptr) {
+						if (!vec.empty()) {
+							vec.push_back(',');
+						}
+						std::string s(left, ptr);
+//						s = url_decode(s);
+						print(&vec, s);
+					}
+					if (c == -1) break;
+					ptr++;
+					left = ptr;
+				} else {
+					ptr++;
+				}
+			}
+			std::string s = to_stdstr(&vec);
+
+			client.add_header("Authorization: OAuth " + s);
+			WebClient::make_multipart_form_data(p, strlen(p), &post);
+		} else {
+			WebClient::make_application_www_form_urlencoded(p, strlen(p), &post);
+		}
 		client.post(uri, &post);
 	} else {
 		client.get(uri);
@@ -96,6 +131,7 @@ std::string conv(char const *dstenc, char const *srcenc, std::string const &src)
 
 bool TwitterClient::tweet(std::string message)
 {
+#if 1
 	if (message.empty()) {
 		return false;
 	}
@@ -118,7 +154,18 @@ bool TwitterClient::tweet(std::string message)
 	std::string post;
 	std::string request = oauth_sign_url2(uri.c_str(), &post, OA_HMAC, 0, c_key(), c_sec(), t_key(), t_sec());
 	std::string res;
-	bool ok = http_request(request.c_str(), post.c_str(), &res);
+	bool ok = http_request(request.c_str(), post.c_str(), &res, false);
+	puts(res.c_str());
+#else
+
+	std::string uri = "https://upload.twitter.com/1.1/media/upload.json";
+
+	std::string post;
+	std::string request = oauth_sign_url2(uri.c_str(), &post, OA_HMAC, 0, c_key(), c_sec(), t_key(), t_sec());
+	std::string res;
+	bool ok = http_request(request.c_str(), post.c_str(), &res, true);
+	puts(res.c_str());
+#endif
 
 	return ok;
 }
