@@ -9,14 +9,14 @@ win32:LIBS += C:\develop\openssl-1.0.1h-32\lib\ssleay32.lib
 unix:LIBS += -lssl -lcrypto
 
 SOURCES += \
-    src/hash.cpp \
     src/main.cpp \
     src/oauth.cpp \
     src/tweet.cpp \
     src/sha1.c \
     src/webclient.cpp \
     src/urlencode.cpp \
-    src/charvec.cpp
+    src/charvec.cpp \
+    src/base64.cpp
 
 HEADERS += \
     src/oauth.h \
@@ -24,4 +24,5 @@ HEADERS += \
     src/tweet.h \
     src/webclient.h \
     src/urlencode.h \
-    src/charvec.h
+    src/charvec.h \
+    src/base64.h

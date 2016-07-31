@@ -3,6 +3,7 @@
 #include "tweet.h"
 #include "webclient.h"
 #include "oauth.h"
+#include "base64.h"
 
 //#include "../keys/mykey.h"
 //#include "../keys/soramimi_jp.h"
@@ -57,7 +58,7 @@ int main(int argc, char **argv)
 			message = std::string(tmp, n);
 		}
 		if (f_base64) {
-			message = oauth_decode_base64(message.c_str());
+			message = base64_decode(message);
 		}
 	}
 

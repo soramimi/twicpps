@@ -1,6 +1,6 @@
 
-#ifndef __CHARVEC_H
-#define __CHARVEC_H
+#ifndef CHARVEC_H_
+#define CHARVEC_H_
 
 #include <vector>
 #include <string>

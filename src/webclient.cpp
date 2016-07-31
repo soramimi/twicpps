@@ -31,6 +31,11 @@ typedef int socket_t;
 #include <string.h>
 #include <stdlib.h>
 #include <sys/types.h>
+#include <io.h>
+#include <fcntl.h>
+#include <sys/stat.h>
+#include "urlencode.h"
+
 
 #if USE_OPENSSL
 #include <openssl/crypto.h>
@@ -50,8 +55,9 @@ struct WebContext::Private {
 	bool use_keep_alive = false;
 };
 
-WebClient::URL::URL(char const *str)
+WebClient::URL::URL(std::string const &addr)
 {
+	char const *str = addr.c_str();
 	char const *left;
 	char const *right;
 	left = str;
@@ -890,11 +896,6 @@ void WebClient::make_application_www_form_urlencoded(char const *data, size_t si
 	out->content_type = CT_APPLICATION_X_WWW_FORM_URLENCODED;
 	write(&out->data, data, size);
 }
-
-#include <io.h>
-#include <fcntl.h>
-#include <sys/stat.h>
-#include "urlencode.h"
 
 void WebClient::make_multipart_form_data(char const *data, size_t size, WebClient::Post *out)
 {

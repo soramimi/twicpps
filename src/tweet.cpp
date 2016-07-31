@@ -16,7 +16,7 @@
 #include "charvec.h"
 #include "urlencode.h"
 
-static bool http_request(const char *u, const char *p, std::string *reply, bool upload)
+static bool http_request(std::string const &url, std::string const *post, std::string *reply, bool upload)
 {
 	if (reply) {
 		reply->clear();
@@ -26,44 +26,49 @@ static bool http_request(const char *u, const char *p, std::string *reply, bool 
 	webcx.load_cacert("C:\\develop\\twicpps\\cacert.pem");
 #endif
 	WebClient client(&webcx);
-	WebClient::URL uri(u);
-	if (p) {
-		WebClient::Post post;
+	WebClient::URL uri(url.c_str());
+	if (post) {
+		WebClient::Post postdata;
 		if (upload) {
-			std::vector<char> vec;
-			char const *begin = p;
-			char const *end = begin + strlen(begin);
-			char const *ptr = begin;
-			char const *left = ptr;
-			while (1) {
-				int c = -1;
-				if (ptr < end) {
-					c = *ptr & 0xff;
-				}
-				if (c == '&' || c == -1) {
-					if (left < ptr) {
-						if (!vec.empty()) {
-							vec.push_back(',');
+			auto make_authorization_from_post_data = [](std::string const &post){
+				std::vector<char> vec;
+				{
+					char const *begin = post.c_str();
+					char const *end = begin + post.size();
+					char const *ptr = begin;
+					char const *left = begin;
+					while (1) {
+						int c = -1;
+						if (ptr < end) {
+							c = *ptr & 0xff;
 						}
-						std::string s(left, ptr);
-//						s = url_decode(s);
-						print(&vec, s);
+						if (c == '&' || c == -1) {
+							if (left < ptr) {
+								if (!vec.empty()) {
+									vec.push_back(',');
+								}
+								std::string s(left, ptr);
+								print(&vec, s);
+							}
+							if (c == -1) break;
+							ptr++;
+							left = ptr;
+						} else {
+							ptr++;
+						}
 					}
-					if (c == -1) break;
-					ptr++;
-					left = ptr;
-				} else {
-					ptr++;
 				}
-			}
-			std::string s = to_stdstr(&vec);
+				return to_stdstr(&vec);
+			};
+			std::string s = make_authorization_from_post_data(*post);
 
 			client.add_header("Authorization: OAuth " + s);
-			WebClient::make_multipart_form_data(p, strlen(p), &post);
+			WebClient::make_multipart_form_data(post->c_str(), post->size(), &postdata);
+
 		} else {
-			WebClient::make_application_www_form_urlencoded(p, strlen(p), &post);
+			WebClient::make_application_www_form_urlencoded(post->c_str(), post->size(), &postdata);
 		}
-		client.post(uri, &post);
+		client.post(uri, &postdata);
 	} else {
 		client.get(uri);
 	}
@@ -143,27 +148,23 @@ bool TwitterClient::tweet(std::string message)
 	//message = conv("utf-8", "euc-jp", message);
 #endif
 
-//	std::string uri = "http://api.twitter.com/statuses/update.xml";
-//	std::string uri = "http://api.twitter.com/1/statuses/update.xml"; // 2012-11-15
-//	std::string uri = "http://api.twitter.com/1.1/statuses/update.json"; // 2013-02-26
-	std::string uri = "https://api.twitter.com/1.1/statuses/update.json"; // 2014-01-19
+	std::string url = "https://api.twitter.com/1.1/statuses/update.json";
 
-	uri += "?status=";
-	uri += oauth_url_escape(message.c_str());
+	url += "?status=";
+	url += url_encode(message);
 
-	std::string post;
-	std::string request = oauth_sign_url2(uri.c_str(), &post, OA_HMAC, 0, c_key(), c_sec(), t_key(), t_sec());
+	oauth::Request request = oauth::sign(url.c_str(), oauth::POST, keys());
 	std::string res;
-	bool ok = http_request(request.c_str(), post.c_str(), &res, false);
+	bool ok = http_request(request.url, &request.post, &res, false);
 	puts(res.c_str());
 #else
 
-	std::string uri = "https://upload.twitter.com/1.1/media/upload.json";
+	std::string url = "https://upload.twitter.com/1.1/media/upload.json";
 
 	std::string post;
-	std::string request = oauth_sign_url2(uri.c_str(), &post, OA_HMAC, 0, c_key(), c_sec(), t_key(), t_sec());
+	oauth::Request request = oauth::sign(url.c_str(), oauth::POST, keys());
 	std::string res;
-	bool ok = http_request(request.c_str(), post.c_str(), &res, true);
+	bool ok = http_request(request.url, &request.post, &res, true);
 	puts(res.c_str());
 #endif
 

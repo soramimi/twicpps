@@ -3,6 +3,7 @@
 #define __TWEET_H
 
 #include <string>
+#include "oauth.h"
 
 class TwitterClient {
 private:
@@ -12,10 +13,14 @@ private:
 		std::string accesstoken;
 		std::string accesstoken_sec;
 	} data;
-	char const *c_key() const { return data.consumer_key.c_str(); }
-	char const *c_sec() const { return data.consumer_sec.c_str(); }
-	char const *t_key() const { return data.accesstoken.c_str(); }
-	char const *t_sec() const { return data.accesstoken_sec.c_str(); }
+	char const *consumer_key() const { return data.consumer_key.c_str(); }
+	char const *consumer_sec() const { return data.consumer_sec.c_str(); }
+	char const *accesstoken() const { return data.accesstoken.c_str(); }
+	char const *accesstoken_sec() const { return data.accesstoken_sec.c_str(); }
+	oauth::Keys keys() const
+	{
+		return oauth::Keys(consumer_key(), consumer_sec(), accesstoken(), accesstoken_sec());
+	}
 public:
 	TwitterClient()
 	{

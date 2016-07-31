@@ -38,7 +38,7 @@ public:
 		int port_ = 0;
 		std::string path_;
 	public:
-		URL(char const *str);
+		URL(const std::string &str);
 		std::string const &scheme() const { return scheme_; }
 		std::string const &host() const { return host_; }
 		int port() const { return port_; }
