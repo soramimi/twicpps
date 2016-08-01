@@ -16,9 +16,16 @@
 #include "charvec.h"
 #include "urlencode.h"
 
+#ifdef _WIN32
 #include <io.h>
 #include <fcntl.h>
 #include <sys/stat.h>
+#else
+#include <fcntl.h>
+#include <unistd.h>
+#include <sys/stat.h>
+#define O_BINARY 0
+#endif
 
 static std::string make_authorization_string(char const *begin, char const *end)
 {

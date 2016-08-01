@@ -30,11 +30,11 @@ private:
 
 	Node node;
 
-	int scan_space(char const *ptr, char const *end);
-	int parse_string(char const *begin, char const *end, std::string *out);
-	int parse_name(char const *begin, char const *end, Node *node);
-	int parse_value(char const *begin, char const *end, Node *node);
-	int parse_array(char const *begin, char const *end, std::vector<Node> *children);
+	static int scan_space(char const *ptr, char const *end);
+	static int parse_string(char const *begin, char const *end, std::string *out);
+	static int parse_name(char const *begin, char const *end, Node *node);
+	static int parse_value(char const *begin, char const *end, Node *node);
+	static int parse_array(char const *begin, char const *end, std::vector<Node> *children);
 public:
 	bool parse(char const *begin, char const *end);
 	bool parse(const std::string &text);

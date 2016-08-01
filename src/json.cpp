@@ -1,5 +1,6 @@
 #include "json.h"
 #include "charvec.h"
+#include <string.h>
 
 int JSON::scan_space(const char *ptr, const char *end)
 {
@@ -15,7 +16,6 @@ int JSON::parse_string(const char *begin, const char *end, std::string *out)
 	if (*ptr == '\"') {
 		ptr++;
 		std::vector<char> vec;
-		char const *left = ptr;
 		while (ptr < end) {
 			if (*ptr == '\"') {
 				*out = to_stdstr(&vec);
@@ -24,17 +24,20 @@ int JSON::parse_string(const char *begin, const char *end, std::string *out)
 			} else if (*ptr == '\\') {
 				ptr++;
 				if (ptr < end) {
+					auto push = [&](char c){ vec.push_back(c); ptr++; };
 					switch (*ptr) {
-					case 'a': vec.push_back('\a'); break;
-					case 'b': vec.push_back('\b'); break;
-					case 'n': vec.push_back('\n'); break;
-					case 'r': vec.push_back('\r'); break;
-					case 'f': vec.push_back('\f'); break;
-					case 't': vec.push_back('\t'); break;
-					case 'v': vec.push_back('\v'); break;
-					case '\\': vec.push_back('\\'); break;
-					case '\'': vec.push_back('\''); break;
-					case '\"': vec.push_back('\"'); break;
+					case 'a': push('\a'); break;
+					case 'b': push('\b'); break;
+					case 'n': push('\n'); break;
+					case 'r': push('\r'); break;
+					case 'f': push('\f'); break;
+					case 't': push('\t'); break;
+					case 'v': push('\v'); break;
+					case '\\':
+					case '\'':
+					case '\"':
+						push(*ptr);
+						break;
 					case 'x':
 						ptr++;
 						if (ptr + 1 > end && isxdigit(ptr[0] & 0xff) && isxdigit(ptr[1] & 0xff)) {
