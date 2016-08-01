@@ -16,7 +16,11 @@
 #include "charvec.h"
 #include "urlencode.h"
 
-static bool http_request(std::string const &url, std::string const *post, std::string *reply, bool upload)
+#include <io.h>
+#include <fcntl.h>
+#include <sys/stat.h>
+
+static bool http_request(std::string const &url, std::string const *post, std::string *reply, bool upload, std::string const &path = std::string())
 {
 	if (reply) {
 		reply->clear();
@@ -30,6 +34,18 @@ static bool http_request(std::string const &url, std::string const *post, std::s
 	if (post) {
 		WebClient::Post postdata;
 		if (upload) {
+			std::vector<char> img;
+			int fd = open(path.c_str(), O_RDONLY | O_BINARY);
+			if (fd >= 0) {
+				struct stat st;
+				if (fstat(fd, &st) == 0 && st.st_size > 0) {
+					img.resize(st.st_size);
+					read(fd, &img[0], st.st_size);
+				}
+				::close(fd);
+			}
+			if (img.empty()) return false;
+
 			auto make_authorization_from_post_data = [](std::string const &post){
 				std::vector<char> vec;
 				{
@@ -63,7 +79,7 @@ static bool http_request(std::string const &url, std::string const *post, std::s
 			std::string s = make_authorization_from_post_data(*post);
 
 			client.add_header("Authorization: OAuth " + s);
-			WebClient::make_multipart_form_data(post->c_str(), post->size(), &postdata);
+			WebClient::make_multipart_form_data(&img[0], img.size(), &postdata);
 
 		} else {
 			WebClient::make_application_www_form_urlencoded(post->c_str(), post->size(), &postdata);
@@ -88,7 +104,7 @@ static bool http_request(std::string const &url, std::string const *post, std::s
 }
 
 
-#ifdef WIN32
+#ifdef _WIN32
 
 std::string sjis_to_utf8(std::string const &message)
 {
@@ -132,11 +148,11 @@ std::string conv(char const *dstenc, char const *srcenc, std::string const &src)
 
 #endif
 
+#include "json.h"
 
 
-bool TwitterClient::tweet(std::string message)
+bool TwitterClient::tweet(std::string message, std::vector<std::string> const *media_ids)
 {
-#if 1
 	if (message.empty()) {
 		return false;
 	}
@@ -152,22 +168,42 @@ bool TwitterClient::tweet(std::string message)
 
 	url += "?status=";
 	url += url_encode(message);
+	if (media_ids) {
+		std::string ids;
+		for (std::string const &media_id : *media_ids) {
+			if (!media_id.empty()) {
+				if (!ids.empty()) {
+					ids += ',';
+				}
+				ids += media_id;
+			}
+		}
+		url += "&media_ids=";
+		url += ids;
+	}
 
 	oauth::Request request = oauth::sign(url.c_str(), oauth::POST, keys());
 	std::string res;
 	bool ok = http_request(request.url, &request.post, &res, false);
 	puts(res.c_str());
-#else
+
+	return ok;
+}
+
+std::string TwitterClient::upload(std::string const &path)
+{
+	std::string media_id;
 
 	std::string url = "https://upload.twitter.com/1.1/media/upload.json";
 
-	std::string post;
 	oauth::Request request = oauth::sign(url.c_str(), oauth::POST, keys());
 	std::string res;
-	bool ok = http_request(request.url, &request.post, &res, true);
-	puts(res.c_str());
-#endif
-
-	return ok;
+	bool ok = http_request(request.url, &request.post, &res, true, path);
+	if (ok && !res.empty()) {
+		JSON json;
+		json.parse(res);
+		media_id = json.get("/media_id").value;
+	}
+	return media_id;
 }
 

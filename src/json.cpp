@@ -197,9 +197,17 @@ int JSON::parse_array(const char *begin, const char *end, std::vector<JSON::Node
 	}
 }
 
-void JSON::parse(const char *begin, const char *end)
+bool JSON::parse(const char *begin, const char *end)
 {
-	parse_value(begin, end, &node);
+	return parse_value(begin, end, &node) > 0;
+}
+
+bool JSON::parse(std::string const &text)
+{
+	if (text.empty()) return false;
+	const char *begin = text.c_str();
+	const char *end = begin + text.size();
+	return parse(begin, end);
 }
 
 JSON::Value JSON::get(const std::string &path) const

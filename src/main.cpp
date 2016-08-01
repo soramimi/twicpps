@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <sys/stat.h>
 
 #include "tweet.h"
 #include "webclient.h"
@@ -24,6 +25,7 @@ int main(int argc, char **argv)
 	}
 
 	std::string message;
+	std::vector<std::string> media_paths;
 	{
 		bool f_stdin = false;
 		bool f_base64 = false;
@@ -41,6 +43,11 @@ int main(int argc, char **argv)
 					f_stdin = true;
 				} else if (arg == "-base64") {
 					f_base64 = true;
+				} else if (arg == "-media") {
+					if (i < argc) {
+						media_paths.push_back(argv[i]);
+						i++;
+					}
 				} else {
 					fprintf(stderr, "unknown option: %s\n", arg.c_str());
 				}
@@ -62,9 +69,29 @@ int main(int argc, char **argv)
 		}
 	}
 
+	bool ok = true;
+
+	for (std::string const &path : media_paths) {
+		struct stat st;
+		if (stat(path.c_str(), &st) == 0 && (st.st_mode & S_IFMT) == S_IFREG) {
+			// ok
+		} else {
+			fprintf(stderr, "media file is invalid: %s\n", path.c_str());
+		}
+	}
+	if (!ok) return 1;
+
+	ok = false;
+
 	WebClient::initialize();
 	TwitterClient tc(consumer_key, consumer_sec, accesstoken, accesstoken_sec);
-	bool ok = tc.tweet(message);
+
+	std::vector<std::string> media_ids;
+	for (std::string const &path : media_paths) {
+		media_ids.push_back(tc.upload(path));
+	}
+
+	ok = tc.tweet(message, &media_ids);
 
 	return ok ? 0 : 1;
 }

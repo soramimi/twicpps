@@ -36,7 +36,8 @@ private:
 	int parse_value(char const *begin, char const *end, Node *node);
 	int parse_array(char const *begin, char const *end, std::vector<Node> *children);
 public:
-	void parse(char const *begin, char const *end);
+	bool parse(char const *begin, char const *end);
+	bool parse(const std::string &text);
 
 	Value get(std::string const &path) const;
 };

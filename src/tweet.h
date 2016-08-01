@@ -32,7 +32,8 @@ public:
 		data.accesstoken = accesstoken;
 		data.accesstoken_sec = accesstoken_sec;
 	}
-	bool tweet(std::string message);
+	bool tweet(std::string message, const std::vector<std::string> *media_ids = nullptr);
+	std::string upload(const std::string &path);
 };
 
 #endif

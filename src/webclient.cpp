@@ -899,17 +899,6 @@ void WebClient::make_application_www_form_urlencoded(char const *data, size_t si
 
 void WebClient::make_multipart_form_data(char const *data, size_t size, WebClient::Post *out)
 {
-	std::vector<char> img;
-	int fd = open("Z:\\img\\icon\\yuno.png", O_RDONLY | O_BINARY);
-	if (fd >= 0) {
-		struct stat st;
-		if (fstat(fd, &st) == 0 && st.st_size > 0) {
-			img.resize(st.st_size);
-			read(fd, &img[0], st.st_size);
-		}
-		::close(fd);
-	}
-
 	*out = WebClient::Post();
 	out->content_type = CT_MULTIPART_FORM_DATA;
 	out->boundary = "----------boundary";
@@ -928,10 +917,10 @@ void WebClient::make_multipart_form_data(char const *data, size_t size, WebClien
 	write(&out->data, out->boundary);
 	write(&out->data, "\r\n");
 	write(&out->data, "Content-Disposition: form-data; name=\"media\"\r\n");
-	write(&out->data, "Content-Type: image/png\r\n");
-	write(&out->data, "Content-Transfer-Encoding: binary\r\n");
+//	write(&out->data, "Content-Type: image/png\r\n");
+//	write(&out->data, "Content-Transfer-Encoding: binary\r\n");
 	write(&out->data, "\r\n");
-	write(&out->data, &img[0], img.size());
+	write(&out->data, data, size);
 	write(&out->data, "\r\n");
 #endif
 
