@@ -27,16 +27,6 @@ typedef int socket_t;
 #define strnicmp(A, B, C) strncasecmp(A, B, C)
 #endif
 
-#include <stdio.h>
-#include <string.h>
-#include <stdlib.h>
-#include <sys/types.h>
-#include <io.h>
-#include <fcntl.h>
-#include <sys/stat.h>
-#include "urlencode.h"
-
-
 #if USE_OPENSSL
 #include <openssl/crypto.h>
 #include <openssl/ssl.h>
@@ -879,10 +869,15 @@ WebClient::Response const &WebClient::response() const
 	return pv->response;
 }
 
+static void write(std::vector<char> *out, char const *begin, char const *end)
+{
+	out->insert(out->end(), begin, end);
+}
+
 static void write(std::vector<char> *out, char const *p, int n = -1)
 {
 	if (n < 0) n = strlen(p);
-	out->insert(out->end(), p, p + n);
+	write(out, p, p + n);
 }
 
 static void write(std::vector<char> *out, std::string const &str)
@@ -890,44 +885,66 @@ static void write(std::vector<char> *out, std::string const &str)
 	write(out, str.c_str(), (int)str.size());
 }
 
-void WebClient::make_application_www_form_urlencoded(char const *data, size_t size, WebClient::Post *out)
+void WebClient::make_application_www_form_urlencoded(char const *begin, char const *end, WebClient::Post *out)
 {
 	*out = WebClient::Post();
 	out->content_type = CT_APPLICATION_X_WWW_FORM_URLENCODED;
-	write(&out->data, data, size);
+	write(&out->data, begin, end - begin);
 }
 
-void WebClient::make_multipart_form_data(char const *data, size_t size, WebClient::Post *out)
+void WebClient::make_multipart_form_data(std::vector<Part> const &parts, WebClient::Post *out, std::string const &boundary)
 {
 	*out = WebClient::Post();
 	out->content_type = CT_MULTIPART_FORM_DATA;
-	out->boundary = "----------boundary";
+	out->boundary = boundary;
 
-#if 0
-	write(&out->data, "--");
-	write(&out->data, out->boundary);
-	write(&out->data, "\r\n");
-	write(&out->data, "Content-Disposition: form-data; name=\"VALUE\"; filename=\"value.bin\"\r\nContent-Type: application/octet-stream\r\nContent-Transfer-Encoding: binary\r\n\r\n");
-	write(&out->data, data, size);
-	write(&out->data, "\r\n");
-#endif
-
-#if 1
-	write(&out->data, "--");
-	write(&out->data, out->boundary);
-	write(&out->data, "\r\n");
-	write(&out->data, "Content-Disposition: form-data; name=\"media\"\r\n");
-//	write(&out->data, "Content-Type: image/png\r\n");
-//	write(&out->data, "Content-Transfer-Encoding: binary\r\n");
-	write(&out->data, "\r\n");
-	write(&out->data, data, size);
-	write(&out->data, "\r\n");
-#endif
+	for (Part const &part : parts) {
+		write(&out->data, "--");
+		write(&out->data, out->boundary);
+		write(&out->data, "\r\n");
+		if (!part.content_disposition.type.empty()) {
+			ContentDisposition const &cd = part.content_disposition;
+			std::string s;
+			s = "Content-Disposition: ";
+			s += cd.type;
+			auto Add = [&s](std::string const &name, std::string const &value){
+				if (!value.empty()) {
+					s += "; " + name + "=\"";
+					s += value;
+					s += '\"';
+				}
+			};
+			Add("name", cd.name);
+			Add("filename", cd.filename);
+			write(&out->data, s);
+			write(&out->data, "\r\n");
+		}
+		if (!part.content_type.empty()) {
+			write(&out->data, "Content-Type: " + part.content_type + "\r\n");
+		}
+		if (!part.content_transfer_encoding.empty()) {
+			write(&out->data, "Content-Transfer-Encoding: " + part.content_transfer_encoding + "\r\n");
+		}
+		write(&out->data, "\r\n");
+		write(&out->data, part.data, part.size);
+		write(&out->data, "\r\n");
+	}
 
 	write(&out->data, "--");
 	write(&out->data, out->boundary);
 	write(&out->data, "--\r\n");
 }
+
+void WebClient::make_multipart_form_data(char const *data, size_t size, WebClient::Post *out, std::string const &boundary)
+{
+	Part part;
+	part.data = data;
+	part.size = size;
+	std::vector<Part> parts;
+	parts.push_back(part);
+	make_multipart_form_data(parts, out, boundary);
+}
+
 
 //
 

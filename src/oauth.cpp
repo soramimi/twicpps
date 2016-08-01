@@ -1,11 +1,11 @@
 
 #include "oauth.h"
-#include <time.h>
-#include <algorithm>
 #include "urlencode.h"
 #include "sha1.h"
 #include "base64.h"
 #include "charvec.h"
+#include <time.h>
+#include <algorithm>
 
 void oauth::hmac_sha1(uint8_t const *key, size_t keylen, uint8_t const *in, size_t inlen, uint8_t *resbuf)
 {
@@ -79,11 +79,36 @@ std::string oauth::url_unescape(const char *string)
 	return url_decode(string);
 }
 
-std::string oauth::build_url(std::vector<std::string> const &argv, int start, std::string const &sep)
+void oauth::split_url(const char *url, std::vector<std::string> *out)
 {
+	out->clear();
+	char const *left = url;
+	char const *ptr = left;
+	while (1) {
+		int c = *ptr & 0xff;
+		if (c == '&' || c == '?' || c == 0) {
+			if (left < ptr) {
+				out->push_back(std::string(left, ptr));
+			}
+			if (c == 0) break;
+			ptr++;
+			left = ptr;
+		} else {
+			ptr++;
+		}
+	}
+	for (size_t i = 1; i < out->size(); i++) {
+		std::string *p = &out->at(i);
+		*p = url_decode(*p);
+	}
+}
+
+std::string oauth::build_url(std::vector<std::string> const &vec, int start)
+{
+	const char sep = '&';
 	std::string query;
-	for (size_t i = start; i < argv.size(); i++) {
-		std::string s = argv[i];
+	for (size_t i = start; i < vec.size(); i++) {
+		std::string s = vec[i];
 		if (i > 0) {
 			char const *p = s.c_str();
 			char const *e = strchr(p, '=');
@@ -103,7 +128,7 @@ std::string oauth::build_url(std::vector<std::string> const &argv, int start, st
 	return query;
 }
 
-void oauth::sign_process(std::vector<std::string> *args, http_method_t http_method, const Keys &keys)
+void oauth::process_(std::vector<std::string> *vec, http_method_t http_method, const Keys &keys)
 {
 	auto to_s = [](int v)->std::string{
 		char tmp[100];
@@ -114,16 +139,14 @@ void oauth::sign_process(std::vector<std::string> *args, http_method_t http_meth
 	{
 		auto nonce = [](){
 			static const char *chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_";
-			const unsigned int max = 26 + 26 + 10 + 1; //strlen(chars);
+			const unsigned int max = 26 + 26 + 10 + 1;
 			char tmp[50];
-			int i, len;
-
 			srand((unsigned int)time(0));
-			len = 15 + rand() % 16;
-			for (i = 0; i < len; i++) {
+			int len = 15 + rand() % 16;
+			for (int i = 0; i < len; i++) {
 				tmp[i] = chars[rand() % max];
 			}
-			return std::string(tmp, i);
+			return std::string(tmp, len);
 		};
 
 		auto is_key_contains = [](std::vector<std::string> const &argv, std::string const &key)
@@ -138,46 +161,45 @@ void oauth::sign_process(std::vector<std::string> *args, http_method_t http_meth
 		};
 
 		std::string oauth_nonce = "oauth_nonce";
-		if (!is_key_contains(*args, oauth_nonce)) {
+		if (!is_key_contains(*vec, oauth_nonce)) {
 			oauth_nonce += '=';
 			oauth_nonce += nonce();
-			args->push_back(oauth_nonce);
+			vec->push_back(oauth_nonce);
 		}
 
 		std::string oauth_timestamp = "oauth_timestamp";
-		if (!is_key_contains(*args, oauth_timestamp)) {
+		if (!is_key_contains(*vec, oauth_timestamp)) {
 			oauth_timestamp += '=';
 			oauth_timestamp += to_s((int)time(nullptr));
-			args->push_back(oauth_timestamp);
+			vec->push_back(oauth_timestamp);
 		}
 
 		if (!keys.accesstoken.empty()) {
 			std::string oauth_token = "oauth_token";
 			oauth_token += '=';
 			oauth_token += keys.accesstoken;
-			args->push_back(oauth_token);
+			vec->push_back(oauth_token);
 		}
 
 		std::string oauth_consumer_key = "oauth_consumer_key";
 		oauth_consumer_key += '=';
 		oauth_consumer_key += keys.consumer_key;
-		args->push_back(oauth_consumer_key);
+		vec->push_back(oauth_consumer_key);
 
 		std::string oauth_signature_method = "oauth_signature_method";
 		oauth_signature_method += '=';
 		oauth_signature_method += "HMAC-SHA1";
-		args->push_back(oauth_signature_method);
+		vec->push_back(oauth_signature_method);
 
 		std::string oauth_version = "oauth_version";
-		if (!is_key_contains(*args, oauth_version)) {
+		if (!is_key_contains(*vec, oauth_version)) {
 			oauth_version += '=';
 			oauth_version += "1.0";
-			args->push_back(oauth_version);
+			vec->push_back(oauth_version);
 		}
 
 	}
-	std::sort(args->begin() + 1, args->end());
-
+	std::sort(vec->begin() + 1, vec->end());
 
 	auto Combine = [](std::initializer_list<std::string> list){
 		std::string text;
@@ -192,7 +214,7 @@ void oauth::sign_process(std::vector<std::string> *args, http_method_t http_meth
 		return text;
 	};
 
-	std::string query = oauth::build_url(*args, 1, "&");
+	std::string query = oauth::build_url(*vec, 1);
 
 	std::string httpmethod;
 	if (http_method == http_method_t::GET) {
@@ -200,58 +222,35 @@ void oauth::sign_process(std::vector<std::string> *args, http_method_t http_meth
 	} else if (http_method == http_method_t::POST) {
 		httpmethod = "POST";
 	}
-	std::string m = Combine({httpmethod, (*args)[0], query});
+	std::string m = Combine({httpmethod, (*vec)[0], query});
 	std::string k = Combine({std::string(keys.consumer_sec), std::string(keys.accesstoken_sec)});
 
 	std::string oauth_signature = "oauth_signature";
 	oauth_signature += '=';
 	oauth_signature += sign_hmac_sha1(m, k);
 
-	args->push_back(oauth_signature);
+	vec->push_back(oauth_signature);
 
-	for (std::string const &s : *args) {
+	for (std::string const &s : *vec) {
 		puts(s.c_str());
 	}
 }
 
 oauth::Request oauth::sign(const char *url, http_method_t http_method, const Keys &keys)
 {
-	auto split_url = [](const char *url, std::vector<std::string> *out){
-		out->clear();
-		char const *left = url;
-		char const *ptr = left;
-		while (1) {
-			int c = *ptr & 0xff;
-			if (c == '&' || c == '?' || c == 0) {
-				if (left < ptr) {
-					out->push_back(std::string(left, ptr));
-				}
-				if (c == 0) break;
-				ptr++;
-				left = ptr;
-			} else {
-				ptr++;
-			}
-		}
-		for (size_t i = 1; i < out->size(); i++) {
-			std::string *p = &out->at(i);
-			*p = url_decode(*p);
-		}
-	};
+	std::vector<std::string> vec;
+	split_url(url, &vec);
 
-	std::vector<std::string> argv;
-	split_url(url, &argv);
-
-	sign_process(&argv, http_method, keys);
+	process_(&vec, http_method, keys);
 
 	if (http_method == POST) {
 		Request req;
-		req.post = oauth::build_url(argv, 1, "&");
-		req.url = argv.at(0);
+		req.post = oauth::build_url(vec, 1);
+		req.url = vec.at(0);
 		return req;
 	} else {
 		Request req;
-		req.url = oauth::build_url(argv, 0, "&");
+		req.url = oauth::build_url(vec, 0);
 		return req;
 	}
 }

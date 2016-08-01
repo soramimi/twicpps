@@ -79,6 +79,31 @@ public:
 		std::string boundary;
 		std::vector<char> data;
 	};
+	struct ContentDisposition {
+		std::string type;
+		std::string name;
+		std::string filename;
+	};
+	struct Part {
+		std::string content_type;
+		char const *data = nullptr;
+		size_t size = 0;
+		ContentDisposition content_disposition;
+		std::string content_transfer_encoding;
+		Part()
+		{
+		}
+		Part(char const *data, size_t size, std::string const &content_type = std::string())
+			: data(data)
+			, size(size)
+			, content_type(content_type)
+		{
+		}
+		void set_content_disposition(ContentDisposition const &cd)
+		{
+			content_disposition = cd;
+		}
+	};
 	struct RequestOption {
 		WebClientHandler *handler = nullptr;
 		bool keep_alive = true;
@@ -120,8 +145,10 @@ public:
 	std::string content_type() const;
 	size_t content_length() const;
 	const char *content_data() const;
-	static void make_application_www_form_urlencoded(const char *__data__, size_t size, WebClient::Post *out);
-	static void make_multipart_form_data(const char *__data__, size_t size, WebClient::Post *out);
+
+	static void make_application_www_form_urlencoded(const char *begin, const char *end, WebClient::Post *out);
+	static void make_multipart_form_data(const std::vector<Part> &parts, WebClient::Post *out, const std::string &boundary);
+	static void make_multipart_form_data(const char *data, size_t size, WebClient::Post *out, const std::string &boundary);
 };
 
 class WebContext {

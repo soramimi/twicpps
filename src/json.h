@@ -1,5 +1,5 @@
-#ifndef JSON_H
-#define JSON_H
+#ifndef JSON_H_
+#define JSON_H_
 
 #include <string>
 #include <vector>
@@ -42,4 +42,4 @@ public:
 	Value get(std::string const &path) const;
 };
 
-#endif // JSON_H
+#endif // JSON_H_

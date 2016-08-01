@@ -1,6 +1,6 @@
 
-#ifndef __URLENCODE_H
-#define __URLENCODE_H
+#ifndef URLENCODE_H_
+#define URLENCODE_H_
 
 #include <string>
 

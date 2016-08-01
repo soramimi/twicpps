@@ -42,7 +42,7 @@ int JSON::parse_string(const char *begin, const char *end, std::string *out)
 							tmp[0] = ptr[0];
 							tmp[1] = ptr[1];
 							tmp[2] = 0;
-							vec.push_back(strtol(tmp, 0, 16));
+							vec.push_back((char)strtol(tmp, 0, 16));
 							ptr += 2;
 						}
 						break;
@@ -182,7 +182,7 @@ int JSON::parse_array(const char *begin, const char *end, std::vector<JSON::Node
 			if (*ptr == ':') {
 				ptr++;
 				n = parse_value(ptr, end, &node);
-				if (n == 0) break;
+				if (n == 0) return 0;
 				children->push_back(node);
 				ptr += n;
 				ptr += scan_space(ptr, end);

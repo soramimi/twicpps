@@ -43,11 +43,11 @@ private:
 	static std::string decode_base64(const char *src);
 	static std::string url_escape(const char *string);
 	static std::string url_unescape(const char *string);
-	static void sign_process(std::vector<std::string> *args, http_method_t http_method, const Keys &keys);
-	static std::string build_url(const std::vector<std::string> &argv, int start, const std::string &sep);
+	static void process_(std::vector<std::string> *args, http_method_t http_method, const Keys &keys);
+	static void split_url(const char *url, std::vector<std::string> *out);
+	static std::string build_url(const std::vector<std::string> &argv, int start);
 	static std::string sign_hmac_sha1(const std::string &m, const std::string &k);
 	static void hmac_sha1(const uint8_t *key, size_t keylen, const uint8_t *in, size_t inlen, uint8_t *resbuf);
 };
-
 
 #endif
