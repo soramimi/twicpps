@@ -1,31 +1,25 @@
 
-#ifdef WIN32
+#ifdef _WIN32
 #include <windows.h>
+#include <io.h>
 #pragma warning(disable:4996)
 #else
 #include <iconv.h>
 #include <errno.h>
+#include <unistd.h>
+#define O_BINARY 0
 #endif
 
 #include <stdio.h>
 #include <string.h>
+#include <fcntl.h>
+#include <sys/stat.h>
 
 #include "oauth.h"
 #include "webclient.h"
 #include "tweet.h"
 #include "charvec.h"
 #include "urlencode.h"
-
-#ifdef _WIN32
-#include <io.h>
-#include <fcntl.h>
-#include <sys/stat.h>
-#else
-#include <fcntl.h>
-#include <unistd.h>
-#include <sys/stat.h>
-#define O_BINARY 0
-#endif
 
 static std::string make_authorization_string(char const *begin, char const *end)
 {
@@ -199,7 +193,7 @@ bool TwitterClient::tweet(std::string message, std::vector<std::string> const *m
 	}
 
 	// convert message to utf-8
-#ifdef WIN32
+#ifdef _WIN32
 	message = sjis_to_utf8(message);
 #else
 	//message = conv("utf-8", "euc-jp", message);
@@ -228,10 +222,7 @@ bool TwitterClient::tweet(std::string message, std::vector<std::string> const *m
 	RequestOption opt;
 	char const *p = oauth_req.post.c_str();
 	opt.set_post_data(p, p + oauth_req.post.size());
-	bool ok = request(oauth_req.url, opt, &res);
-	puts(res.c_str());
-
-	return ok;
+	return request(oauth_req.url, opt, &res);
 }
 
 std::string TwitterClient::upload(std::string const &path)

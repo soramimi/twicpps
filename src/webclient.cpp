@@ -147,11 +147,13 @@ void WebClient::cleanup()
 
 void WebClient::output_debug_string(char const *str)
 {
+	if (0) {
 #ifdef _WIN32
-	OutputDebugStringA(str);
+		OutputDebugStringA(str);
 #else
-	fwrite(str, 1, strlen(str), stderr);
+		fwrite(str, 1, strlen(str), stderr);
 #endif
+	}
 }
 
 void WebClient::output_debug_strings(std::vector<std::string> const &vec)
@@ -656,7 +658,6 @@ bool WebClient::https_get(const URL &uri, Post const *post, RequestOption const 
 	set_default_header(uri, post, opt);
 
 	std::string request = make_http_request(uri, post);
-	fputs(request.c_str(), stderr);
 
 	auto SEND = [&](SSL *ssl, char const *ptr, int len){
 		while (len > 0) {
@@ -678,9 +679,7 @@ bool WebClient::https_get(const URL &uri, Post const *post, RequestOption const 
 	pv->content_offset = 0;
 
 	receive_(opt, [&](char *ptr, int len){
-		int n = SSL_read(pv->ssl, ptr, len);
-		fwrite(ptr, 1, n, stderr);
-		return n;
+		return SSL_read(pv->ssl, ptr, len);
 	}, out);
 
 	if (!pv->keep_alive) close();

@@ -231,10 +231,6 @@ void oauth::process_(std::vector<std::string> *vec, http_method_t http_method, c
 	oauth_signature += sign_hmac_sha1(m, k);
 
 	vec->push_back(oauth_signature);
-
-	for (std::string const &s : *vec) {
-		puts(s.c_str());
-	}
 }
 
 oauth::Request oauth::sign(const char *url, http_method_t http_method, const Keys &keys)
