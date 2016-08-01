@@ -3,9 +3,9 @@ CONFIG += console c++11
 CONFIG -= app_bundle
 CONFIG -= qt
 
-win32:INCLUDEPATH += C:\develop\openssl-1.0.1h-32\inc32
-win32:LIBS += C:\develop\openssl-1.0.1h-32\lib\libeay32.lib
-win32:LIBS += C:\develop\openssl-1.0.1h-32\lib\ssleay32.lib
+win32:INCLUDEPATH += C:\develop\openssl-1.0.2g-32\inc32
+win32:LIBS += C:\develop\openssl-1.0.2g-32\out32dll\libeay32.lib
+win32:LIBS += C:\develop\openssl-1.0.2g-32\out32dll\ssleay32.lib
 unix:LIBS += -lssl -lcrypto
 
 SOURCES += \
@@ -16,7 +16,8 @@ SOURCES += \
     src/webclient.cpp \
     src/urlencode.cpp \
     src/charvec.cpp \
-    src/base64.cpp
+    src/base64.cpp \
+    src/json.cpp
 
 HEADERS += \
     src/oauth.h \
@@ -25,4 +26,5 @@ HEADERS += \
     src/webclient.h \
     src/urlencode.h \
     src/charvec.h \
-    src/base64.h
+    src/base64.h \
+    src/json.h
