@@ -27,11 +27,11 @@ void print(std::vector<char> *out, std::string const &s)
 	print(out, s.c_str(), s.size());
 }
 
-std::string to_stdstr(std::vector<char> const *vec)
+std::string to_stdstr(std::vector<char> const &vec)
 {
-	if (vec && !vec->empty()) {
-		char const *begin = &vec->at(0);
-		char const *end = begin + vec->size();
+	if (!vec.empty()) {
+		char const *begin = &vec.at(0);
+		char const *end = begin + vec.size();
 		return std::string(begin, end);
 	}
 	return std::string();

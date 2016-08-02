@@ -46,7 +46,7 @@ static std::string make_authorization_string(char const *begin, char const *end)
 			ptr++;
 		}
 	}
-	return to_stdstr(&vec);
+	return to_stdstr(vec);
 }
 
 std::string make_boundary(char const *begin, char const *end)
