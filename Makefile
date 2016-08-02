@@ -7,7 +7,10 @@ CXXFLAGS=-O2 -std=c++11
 all: $(TARGET)
 
 OBJS = \
-	src/hash.o \
+	src/base64.o \
+	src/json.o \
+	src/charvec.o \
+	src/urlencode.o \
 	src/oauth.o \
 	src/sha1.o \
 	src/webclient.o \
