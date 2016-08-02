@@ -296,7 +296,6 @@ std::string JSON::stringify(const JSON::Node &node, int indent) const
 	} else if (node.type == Type::Boolean) {
 		PutIndent();
 		PutName();
-		text += ':';
 		text += atoi(node.value.c_str()) == 0 ? "false" : "true";
 	} else {
 		PutIndent();
