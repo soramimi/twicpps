@@ -167,7 +167,7 @@ std::string conv(char const *dstenc, char const *srcenc, std::string const &src)
 			char *outbuf = tmp;
 			size_t outleft = space;
 			n = iconv(cd, &inbuf, &inleft, &outbuf, &outleft);
-			if (n == -1 && errno != E2BIG) {
+            if (n == (size_t)-1 && errno != E2BIG) {
 				break;
 			}
 			n = space - outleft;

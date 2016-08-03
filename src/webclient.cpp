@@ -427,7 +427,7 @@ void WebClient::receive_(RequestOption const &opt, std::function<int(char *, int
 		int n;
 		if (rh.state == ResponseHeader::Content && rh.content_length >= 0) {
 			n = rh.pos + rh.content_length - pos;
-			if (n > sizeof(buf)) {
+            if (n > (int)sizeof(buf)) {
 				n = sizeof(buf);
 			}
 			if (n < 1) break;

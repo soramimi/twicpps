@@ -85,19 +85,19 @@ public:
 		std::string filename;
 	};
 	struct Part {
-		std::string content_type;
 		char const *data = nullptr;
 		size_t size = 0;
-		ContentDisposition content_disposition;
+        std::string content_type;
+        ContentDisposition content_disposition;
 		std::string content_transfer_encoding;
 		Part()
 		{
 		}
 		Part(char const *data, size_t size, std::string const &content_type = std::string())
 			: data(data)
-			, size(size)
-			, content_type(content_type)
-		{
+            , size(size)
+            , content_type(content_type)
+        {
 		}
 		void set_content_disposition(ContentDisposition const &cd)
 		{

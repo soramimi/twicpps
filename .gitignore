@@ -8,3 +8,5 @@ Release
 *.o
 tweet
 keys/soramimi*
+.DS_Store
+
