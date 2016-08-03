@@ -427,7 +427,7 @@ void WebClient::receive_(RequestOption const &opt, std::function<int(char *, int
 		int n;
 		if (rh.state == ResponseHeader::Content && rh.content_length >= 0) {
 			n = rh.pos + rh.content_length - pos;
-            if (n > (int)sizeof(buf)) {
+			if (n > (int)sizeof(buf)) {
 				n = sizeof(buf);
 			}
 			if (n < 1) break;
@@ -522,171 +522,171 @@ bool WebClient::https_get(const URL &uri, Post const *post, RequestOption const 
 	out->clear();
 
 	auto get_ssl_error = []()->std::string{
-		char tmp[1000];
-		unsigned long e = ERR_get_error();
-		ERR_error_string_n(e, tmp, sizeof(tmp));
-		return tmp;
-	};
+			char tmp[1000];
+	unsigned long e = ERR_get_error();
+	ERR_error_string_n(e, tmp, sizeof(tmp));
+	return tmp;
+};
 
-	std::string hostname = uri.host();
+std::string hostname = uri.host();
 
-	pv->keep_alive = opt.keep_alive && hostname == pv->last_host_name;
-	if (!pv->keep_alive) close();
+pv->keep_alive = opt.keep_alive && hostname == pv->last_host_name;
+if (!pv->keep_alive) close();
 
-	if (pv->sock == INVALID_SOCKET || !pv->ssl) {
-		int ret;
-		struct hostent *servhost;
-		struct sockaddr_in server;
+if (pv->sock == INVALID_SOCKET || !pv->ssl) {
+	int ret;
+	struct hostent *servhost;
+	struct sockaddr_in server;
 
-		servhost = gethostbyname(uri.host().c_str());
-		if (!servhost) {
-			throw Error("gethostbyname failed.");
-		}
+	servhost = gethostbyname(uri.host().c_str());
+	if (!servhost) {
+		throw Error("gethostbyname failed.");
+	}
 
-		memset((char *)&server, 0, sizeof(server));
-		server.sin_family = AF_INET;
+	memset((char *)&server, 0, sizeof(server));
+	server.sin_family = AF_INET;
 
-		memcpy((char *)&server.sin_addr, servhost->h_addr, servhost->h_length);
+	memcpy((char *)&server.sin_addr, servhost->h_addr, servhost->h_length);
 
-		server.sin_port = htons(get_port(&uri, "https", "tcp"));
+	server.sin_port = htons(get_port(&uri, "https", "tcp"));
 
-		pv->sock = socket(AF_INET, SOCK_STREAM, 0);
-		if (pv->sock == INVALID_SOCKET) {
-			throw Error("socket failed.");
-		}
+	pv->sock = socket(AF_INET, SOCK_STREAM, 0);
+	if (pv->sock == INVALID_SOCKET) {
+		throw Error("socket failed.");
+	}
 
-		if (connect(pv->sock, (struct sockaddr*) &server, sizeof(server)) == SOCKET_ERROR) {
-			throw Error("connect failed.");
-		}
+	if (connect(pv->sock, (struct sockaddr*) &server, sizeof(server)) == SOCKET_ERROR) {
+		throw Error("connect failed.");
+	}
 
-		pv->ssl = SSL_new(sslctx());
-		if (!pv->ssl) {
-			throw Error(get_ssl_error());
-		}
+	pv->ssl = SSL_new(sslctx());
+	if (!pv->ssl) {
+		throw Error(get_ssl_error());
+	}
 
-		SSL_set_options(pv->ssl, SSL_OP_NO_SSLv2);
-		SSL_set_options(pv->ssl, SSL_OP_NO_SSLv3);
+	SSL_set_options(pv->ssl, SSL_OP_NO_SSLv2);
+	SSL_set_options(pv->ssl, SSL_OP_NO_SSLv3);
 
-		ret = SSL_set_fd(pv->ssl, pv->sock);
-		if (ret == 0) {
-			throw Error(get_ssl_error());
-		}
+	ret = SSL_set_fd(pv->ssl, pv->sock);
+	if (ret == 0) {
+		throw Error(get_ssl_error());
+	}
 
-		RAND_poll();
-		while (RAND_status() == 0) {
-			unsigned short rand_ret = rand() % 65536;
-			RAND_seed(&rand_ret, sizeof(rand_ret));
-		}
+	RAND_poll();
+	while (RAND_status() == 0) {
+		unsigned short rand_ret = rand() % 65536;
+		RAND_seed(&rand_ret, sizeof(rand_ret));
+	}
 
-		ret = SSL_connect(pv->ssl);
-		if (ret != 1) {
-			throw Error(get_ssl_error());
-		}
+	ret = SSL_connect(pv->ssl);
+	if (ret != 1) {
+		throw Error(get_ssl_error());
+	}
 
-		std::string cipher = SSL_get_cipher(pv->ssl);
-		cipher += '\n';
-		output_debug_string(cipher.c_str());
+	std::string cipher = SSL_get_cipher(pv->ssl);
+	cipher += '\n';
+	output_debug_string(cipher.c_str());
 
-		std::string version = SSL_get_cipher_version(pv->ssl);
-		version += '\n';
-		output_debug_string(version.c_str());
+	std::string version = SSL_get_cipher_version(pv->ssl);
+	version += '\n';
+	output_debug_string(version.c_str());
 
-		X509 *x509 = SSL_get_peer_certificate(pv->ssl);
-		if (x509) {
-			std::string fingerprint;
-			for (int i = 0; i < SHA_DIGEST_LENGTH; i++) {
-				if (i > 0) {
-					fingerprint += ':';
-				}
-				char tmp[10];
-				sprintf(tmp, "%02X", x509->sha1_hash[i]);
-				fingerprint += tmp;
+	X509 *x509 = SSL_get_peer_certificate(pv->ssl);
+	if (x509) {
+		std::string fingerprint;
+		for (int i = 0; i < SHA_DIGEST_LENGTH; i++) {
+			if (i > 0) {
+				fingerprint += ':';
 			}
-			fingerprint += '\n';
-			output_debug_string(fingerprint.c_str());
+			char tmp[10];
+			sprintf(tmp, "%02X", x509->sha1_hash[i]);
+			fingerprint += tmp;
+		}
+		fingerprint += '\n';
+		output_debug_string(fingerprint.c_str());
 
 
-			long l = SSL_get_verify_result(pv->ssl);
-			if (l == X509_V_OK) {
-				// ok
-			} else {
-				// wrong
-				std::string err = X509_verify_cert_error_string(l);
-				err += '\n';
-				output_debug_string(err.c_str());
-			}
-
-			std::vector<std::string> vec;
-
-			auto GETSTRINGS = [](X509_NAME *x509name, std::vector<std::string> *out){
-				out->clear();
-				if (x509name) {
-					int n = X509_NAME_entry_count(x509name);
-					for (int i = 0; i < n; i++) {
-						X509_NAME_ENTRY *entry = X509_NAME_get_entry(x509name, i);
-						ASN1_STRING *asn1str = X509_NAME_ENTRY_get_data(entry);
-						int asn1len = ASN1_STRING_length(asn1str);
-						unsigned char *p = ASN1_STRING_data(asn1str);
-						std::string str((char const *)p, asn1len);
-						out->push_back(str);
-					}
-				}
-			};
-
-			X509_NAME *subject = X509_get_subject_name(x509);
-			GETSTRINGS(subject, &vec);
-			output_debug_string("--- subject ---\n");
-			output_debug_strings(vec);
-
-			X509_NAME *issuer = X509_get_issuer_name(x509);
-			GETSTRINGS(issuer, &vec);
-			output_debug_string("--- issuer ---\n");
-			output_debug_strings(vec);
-
-			ASN1_TIME *not_before = X509_get_notBefore(x509);
-			ASN1_TIME *not_after  = X509_get_notAfter(x509);
-			(void)not_before;
-			(void)not_after;
-
-			X509_free(x509);
+		long l = SSL_get_verify_result(pv->ssl);
+		if (l == X509_V_OK) {
+			// ok
 		} else {
 			// wrong
+			std::string err = X509_verify_cert_error_string(l);
+			err += '\n';
+			output_debug_string(err.c_str());
 		}
-	}
-	pv->last_host_name = hostname;
 
-	set_default_header(uri, post, opt);
+		std::vector<std::string> vec;
 
-	std::string request = make_http_request(uri, post);
-
-	auto SEND = [&](SSL *ssl, char const *ptr, int len){
-		while (len > 0) {
-			int n = SSL_write(ssl, ptr, len);
-			if (n < 1 || n > len) {
-				throw WebClient::Error(get_ssl_error());
+		auto GETSTRINGS = [](X509_NAME *x509name, std::vector<std::string> *out){
+			out->clear();
+			if (x509name) {
+				int n = X509_NAME_entry_count(x509name);
+				for (int i = 0; i < n; i++) {
+					X509_NAME_ENTRY *entry = X509_NAME_get_entry(x509name, i);
+					ASN1_STRING *asn1str = X509_NAME_ENTRY_get_data(entry);
+					int asn1len = ASN1_STRING_length(asn1str);
+					unsigned char *p = ASN1_STRING_data(asn1str);
+					std::string str((char const *)p, asn1len);
+					out->push_back(str);
+				}
 			}
-			ptr += n;
-			len -= n;
-		}
-	};
+		};
 
-	SEND(pv->ssl, request.c_str(), (int)request.size());
-	if (post && !post->data.empty()) {
-		SEND(pv->ssl, (char const *)&post->data[0], (int)post->data.size());
+		X509_NAME *subject = X509_get_subject_name(x509);
+		GETSTRINGS(subject, &vec);
+		output_debug_string("--- subject ---\n");
+		output_debug_strings(vec);
+
+		X509_NAME *issuer = X509_get_issuer_name(x509);
+		GETSTRINGS(issuer, &vec);
+		output_debug_string("--- issuer ---\n");
+		output_debug_strings(vec);
+
+		ASN1_TIME *not_before = X509_get_notBefore(x509);
+		ASN1_TIME *not_after  = X509_get_notAfter(x509);
+		(void)not_before;
+		(void)not_after;
+
+		X509_free(x509);
+	} else {
+		// wrong
 	}
+}
+pv->last_host_name = hostname;
 
-	pv->crlf_state = 0;
-	pv->content_offset = 0;
+set_default_header(uri, post, opt);
 
-	receive_(opt, [&](char *ptr, int len){
-		return SSL_read(pv->ssl, ptr, len);
-	}, out);
+std::string request = make_http_request(uri, post);
 
-	if (!pv->keep_alive) close();
+auto SEND = [&](SSL *ssl, char const *ptr, int len){
+	while (len > 0) {
+		int n = SSL_write(ssl, ptr, len);
+		if (n < 1 || n > len) {
+			throw WebClient::Error(get_ssl_error());
+		}
+		ptr += n;
+		len -= n;
+	}
+};
 
-	return true;
+SEND(pv->ssl, request.c_str(), (int)request.size());
+if (post && !post->data.empty()) {
+	SEND(pv->ssl, (char const *)&post->data[0], (int)post->data.size());
+}
+
+pv->crlf_state = 0;
+pv->content_offset = 0;
+
+receive_(opt, [&](char *ptr, int len){
+	return SSL_read(pv->ssl, ptr, len);
+}, out);
+
+if (!pv->keep_alive) close();
+
+return true;
 #endif
-	return false;
+return false;
 }
 
 void WebClient::get(URL const &uri, Post const *post, Response *out, WebClientHandler *handler)
