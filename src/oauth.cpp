@@ -4,6 +4,7 @@
 #include "sha1.h"
 #include "base64.h"
 #include "charvec.h"
+#include <stdlib.h>
 #include <string.h>
 #include <time.h>
 #include <algorithm>

@@ -197,7 +197,7 @@ int WebClient::get_port(URL const *uri, char const *scheme, char const *protocol
 static inline std::string to_s(size_t n)
 {
 	char tmp[100];
-	sprintf(tmp, "%u", n);
+	sprintf(tmp, "%u", (int)n);
 	return tmp;
 }
 

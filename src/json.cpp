@@ -1,6 +1,7 @@
 #include "json.h"
 #include "charvec.h"
 #include <string.h>
+#include <stdlib.h>
 
 int JSON::scan_space(const char *ptr, const char *end)
 {
