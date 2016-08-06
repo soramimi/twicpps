@@ -1,6 +1,7 @@
 #include "json.h"
 #include "charvec.h"
 #include <string.h>
+#include <stdlib.h>
 
 int JSON::scan_space(const char *ptr, const char *end)
 {
@@ -18,7 +19,7 @@ int JSON::parse_string(const char *begin, const char *end, std::string *out)
 		std::vector<char> vec;
 		while (ptr < end) {
 			if (*ptr == '\"') {
-				*out = to_stdstr(&vec);
+				*out = to_stdstr(vec);
 				ptr++;
 				return ptr - begin;
 			} else if (*ptr == '\\') {
@@ -100,7 +101,7 @@ int JSON::parse_name(const char *begin, const char *end, JSON::Node *node)
 			} else {
 				ptr++;
 			}
-		} else if (*ptr == '=' || isspace(*ptr & 0xff)) {
+		} else if (strchr(":={}[]", *ptr) || isspace(*ptr & 0xff)) {
 			if (name < ptr) {
 				node->name = std::string(name, ptr);
 				return ptr - begin;
@@ -121,7 +122,7 @@ int JSON::parse_value(const char *begin, const char *end, JSON::Node *node)
 	if (*ptr == '[') {
 		ptr++;
 		node->type = Type::Array;
-		n = parse_array(ptr, end, &node->children);
+		n = parse_array(ptr, end, false, &node->children);
 		ptr += n;
 		if (ptr < end && *ptr == ']') {
 			ptr++;
@@ -130,7 +131,7 @@ int JSON::parse_value(const char *begin, const char *end, JSON::Node *node)
 	} else if (*ptr == '{') {
 		ptr++;
 		node->type = Type::Object;
-		n = parse_array(ptr, end, &node->children);
+		n = parse_array(ptr, end, true, &node->children);
 		ptr += n;
 		if (ptr < end && *ptr == '}') {
 			ptr++;
@@ -171,32 +172,34 @@ int JSON::parse_value(const char *begin, const char *end, JSON::Node *node)
 	return 0;
 }
 
-int JSON::parse_array(const char *begin, const char *end, std::vector<JSON::Node> *children)
+int JSON::parse_array(const char *begin, const char *end, bool withname, std::vector<JSON::Node> *children)
 {
 	children->clear();
 	char const *ptr = begin;
 	while (1) {
 		int n;
 		Node node;
-		n = parse_name(ptr, end, &node);
-		if (n > 0) {
-			ptr += n;
-			ptr += scan_space(ptr, end);
-			if (*ptr == ':') {
-				ptr++;
-				n = parse_value(ptr, end, &node);
-				if (n == 0) return 0;
-				children->push_back(node);
+		if (withname) {
+			n = parse_name(ptr, end, &node);
+			if (n > 0) {
 				ptr += n;
 				ptr += scan_space(ptr, end);
-				if (ptr < end && *ptr == ',') {
+				if (*ptr == ':') {
 					ptr++;
-					continue;
 				}
-				return ptr - begin;
 			}
 		}
-		return 0;
+		n = parse_value(ptr, end, &node);
+		if (node.type != Type::Unknown) {
+			children->push_back(node);
+		}
+		ptr += n;
+		ptr += scan_space(ptr, end);
+		if (ptr < end && *ptr == ',') {
+			ptr++;
+			continue;
+		}
+		return ptr - begin;
 	}
 }
 
@@ -211,6 +214,102 @@ bool JSON::parse(std::string const &text)
 	const char *begin = text.c_str();
 	const char *end = begin + text.size();
 	return parse(begin, end);
+}
+
+std::string JSON::double_quoted_string(const std::string &str)
+{
+	std::vector<char> vec;
+	vec.reserve(str.size() + 10);
+	vec.push_back('\"');
+	char const *begin = str.c_str();
+	char const *end = begin + str.size();
+	char const *ptr = begin;
+	auto backslash = [&](char c){
+		vec.push_back('\\');
+		vec.push_back(c);
+	};
+	while (ptr < end) {
+		switch (*ptr) {
+		case '\"':
+		case '\\':
+		case '/':
+			backslash(*ptr);
+			break;
+		case '\b': backslash('b'); break;
+		case '\f': backslash('f'); break;
+		case '\n': backslash('n'); break;
+		case '\r': backslash('r'); break;
+		case '\t': backslash('r'); break;
+		default:
+			vec.push_back(*ptr);
+			break;
+		}
+		ptr++;
+	}
+	vec.push_back('\"');
+	return to_stdstr(vec);
+}
+
+std::string JSON::stringify(const JSON::Node &node, int indent) const
+{
+	std::string text;
+	auto PutIndent = [&](){
+		for (int i = 0; i < indent; i++) {
+			text += '\t';
+		}
+	};
+	auto PutQuotedString = [&](std::string const &s){
+		text += double_quoted_string(s);
+	};
+	auto PutName = [&](){
+		if (!node.name.empty()) {
+			PutQuotedString(node.name);
+			text += ':';
+		}
+	};
+	auto PutList = [&](char block_begin, char block_end){
+		PutIndent();
+		PutName();
+		text += block_begin;
+		text += '\n';
+		for (size_t i = 0; i < node.children.size(); i++) {
+			text += stringify(node.children[i], indent + 1);
+			if (i + 1 < node.children.size()) {
+				text += ',';
+			}
+			text += '\n';
+		}
+		PutIndent();
+		text += block_end;
+	};
+	if (node.type == Type::Object) {
+		PutList('{', '}');
+	} else if (node.type == Type::Array) {
+		PutList('[', ']');
+	} else if (node.type == Type::Number) {
+		PutIndent();
+		PutName();
+		text += node.value;
+	} else if (node.type == Type::String) {
+		PutIndent();
+		PutName();
+		PutQuotedString(node.value);
+	} else if (node.type == Type::Boolean) {
+		PutIndent();
+		PutName();
+		text += atoi(node.value.c_str()) == 0 ? "false" : "true";
+	} else {
+		PutIndent();
+		PutName();
+		text += "null";
+
+	}
+	return text;
+}
+
+std::string JSON::stringify() const
+{
+	return stringify(node, 0);
 }
 
 JSON::Value JSON::get(const std::string &path) const

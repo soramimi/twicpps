@@ -40,7 +40,7 @@ std::string url_encode(char const *str, char const *end)
 
 	url_encode_(str, end, &out);
 
-	return to_stdstr(&out);
+	return to_stdstr(out);
 }
 
 std::string url_encode(char const *str, size_t len)
@@ -78,7 +78,7 @@ std::string url_encode(std::string const &str)
 	out.insert(out.end(), begin, ptr);
 	url_encode_(ptr, end, &out);
 
-	return to_stdstr(&out);
+	return to_stdstr(out);
 }
 
 static void url_decode_(char const *ptr, char const *end, std::vector<char> *out)
@@ -111,7 +111,7 @@ std::string url_decode(char const *str, char const *end)
 
 	url_decode_(str, end, &out);
 
-	return to_stdstr(&out);
+	return to_stdstr(out);
 }
 
 std::string url_decode(char const *str, size_t len)
@@ -148,5 +148,5 @@ std::string url_decode(std::string const &str)
 	out.insert(out.end(), begin, ptr);
 	url_decode_(ptr, end, &out);
 
-	return to_stdstr(&out);
+	return to_stdstr(out);
 }

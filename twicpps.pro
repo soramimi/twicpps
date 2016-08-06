@@ -7,6 +7,9 @@ win32:INCLUDEPATH += C:\develop\openssl-1.0.2h-32\inc32
 win32:LIBS += C:\develop\openssl-1.0.2h-32\out32dll\libeay32.lib
 win32:LIBS += C:\develop\openssl-1.0.2h-32\out32dll\ssleay32.lib
 unix:LIBS += -lssl -lcrypto
+macx:INCLUDEPATH += /usr/local/opt/openssl/include
+macx:LIBS += -L /usr/local/opt/openssl/lib
+macx:LIBS += -liconv
 
 SOURCES += \
     src/main.cpp \

@@ -197,7 +197,7 @@ int WebClient::get_port(URL const *uri, char const *scheme, char const *protocol
 static inline std::string to_s(size_t n)
 {
 	char tmp[100];
-	sprintf(tmp, "%u", n);
+	sprintf(tmp, "%u", (int)n);
 	return tmp;
 }
 
@@ -427,7 +427,7 @@ void WebClient::receive_(RequestOption const &opt, std::function<int(char *, int
 		int n;
 		if (rh.state == ResponseHeader::Content && rh.content_length >= 0) {
 			n = rh.pos + rh.content_length - pos;
-			if (n > sizeof(buf)) {
+			if (n > (int)sizeof(buf)) {
 				n = sizeof(buf);
 			}
 			if (n < 1) break;
@@ -522,7 +522,7 @@ bool WebClient::https_get(const URL &uri, Post const *post, RequestOption const 
 	out->clear();
 
 	auto get_ssl_error = []()->std::string{
-		char tmp[1000];
+			char tmp[1000];
 		unsigned long e = ERR_get_error();
 		ERR_error_string_n(e, tmp, sizeof(tmp));
 		return tmp;

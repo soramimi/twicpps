@@ -85,9 +85,9 @@ public:
 		std::string filename;
 	};
 	struct Part {
-		std::string content_type;
 		char const *data = nullptr;
 		size_t size = 0;
+		std::string content_type;
 		ContentDisposition content_disposition;
 		std::string content_transfer_encoding;
 		Part()

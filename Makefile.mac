@@ -2,7 +2,7 @@
 TARGET=tweet
 
 CFLAGS=-O2
-CXXFLAGS=-O2 -std=c++11
+CXXFLAGS=-O2 -std=c++11 -I /usr/local/opt/openssl/include -L /usr/local/opt/openssl/lib
 
 all: $(TARGET)
 
@@ -18,7 +18,7 @@ OBJS = \
 	src/main.o
 
 $(TARGET): $(OBJS)
-	g++ -o $(TARGET) $(OBJS) -lssl -lcrypto
+	g++ -o $(TARGET) $(OBJS) -lssl -lcrypto -liconv
 	strip $(TARGET)
 
 clean:

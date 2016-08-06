@@ -4,6 +4,7 @@
 #include "sha1.h"
 #include "base64.h"
 #include "charvec.h"
+#include <stdlib.h>
 #include <string.h>
 #include <time.h>
 #include <algorithm>
@@ -51,7 +52,7 @@ std::string oauth::sign_hmac_sha1(std::string const &m, std::string const &k)
 	hmac_sha1((uint8_t const *)k.c_str(), k.size(), (uint8_t const *)m.c_str(), m.size(), result);
 	std::vector<char> vec;
 	base64_encode((char const *)result, 20, &vec);
-	return to_stdstr(&vec);
+	return to_stdstr(vec);
 }
 
 
@@ -59,7 +60,7 @@ std::string oauth::encode_base64(const unsigned char *src, int size)
 {
 	std::vector<char> vec;
 	base64_encode((char const *)src, size, &vec);
-	return to_stdstr(&vec);
+	return to_stdstr(vec);
 
 }
 
@@ -67,7 +68,7 @@ std::string oauth::decode_base64(const char *src)
 {
 	std::vector<char> vec;
 	base64_decode(src, &vec);
-	return to_stdstr(&vec);
+	return to_stdstr(vec);
 }
 
 std::string oauth::url_escape(const char *string)
