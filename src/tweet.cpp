@@ -213,8 +213,10 @@ bool TwitterClient::tweet(std::string message, std::vector<std::string> const *m
 				ids += media_id;
 			}
 		}
-		url += "&media_ids=";
-		url += ids;
+		if (!ids.empty()) {
+			url += "&media_ids=";
+			url += ids;
+		}
 	}
 
 	oauth::Request oauth_req = oauth::sign(url.c_str(), oauth::POST, keys());
