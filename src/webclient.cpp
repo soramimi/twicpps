@@ -436,6 +436,9 @@ void WebClient::receive_(RequestOption const &opt, std::function<int(char *, int
 		}
 		n = rcv(buf, n);
 		if (n < 1) break;
+		if (0) { // debug
+			fwrite(buf, 1, n, stderr);
+		}
 		append(buf, n, out, opt.handler);
 		pos += n;
 		if (rh.state == ResponseHeader::Header) {

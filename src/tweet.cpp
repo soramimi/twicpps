@@ -203,7 +203,7 @@ bool TwitterClient::tweet(std::string message, std::vector<std::string> const *m
 
 	url += "?status=";
 	url += url_encode(message);
-	if (media_ids) {
+	if (media_ids && !media_ids->empty()) {
 		std::string ids;
 		for (std::string const &media_id : *media_ids) {
 			if (!media_id.empty()) {
