@@ -9,47 +9,45 @@
 #include <time.h>
 #include <algorithm>
 
-void oauth::hmac_sha1(uint8_t const *key, size_t keylen, uint8_t const *in, size_t inlen, uint8_t *resbuf)
+void oauth::hmac_sha1(uint8_t const *key, size_t keylen, uint8_t const *in, size_t inlen, uint8_t *out)
 {
-	SHA1Context inner;
-	SHA1Context outer;
-	uint8_t tmpkey[20];
-	uint8_t digest[20];
-	uint8_t block[64];
+	SHA1Context sha1;
+	uint8_t tmp[20];
 
-	const int IPAD = 0x36;
-	const int OPAD = 0x5c;
+	uint8_t ibuf[64];
+	uint8_t obuf[64];
+	memset(ibuf, 0, 64);
+	memset(obuf, 0, 64);
+	memcpy(ibuf, key, keylen);
+	memcpy(obuf, key, keylen);
 
-	if (keylen > 64) {
-		struct SHA1Context keyhash;
-		SHA1Reset(&keyhash);
-		SHA1Input(&keyhash, (uint8_t const *)key, keylen);
-		SHA1Result(&keyhash, (uint8_t *)tmpkey);
-		key = tmpkey;
-		keylen = 20;
+	for (int i = 0; i < 64; i++) {
+		ibuf[i] ^= 0x36;
+		obuf[i] ^= 0x5c;
 	}
 
-	for (size_t i = 0; i < sizeof(block); i++) {
-		block[i] = IPAD ^ (i < keylen ? key[i] : 0);
-	}
-	SHA1Reset(&inner);
-	SHA1Input(&inner, (uint8_t const *)block, 64);
-	SHA1Input(&inner, (uint8_t const *)in, inlen);
-	SHA1Result(&inner, digest);
+	SHA1Reset(&sha1);
+	SHA1Input(&sha1, ibuf, 64);
+	SHA1Input(&sha1, in, inlen);
+	SHA1Result(&sha1, tmp);
 
-	for (size_t i = 0; i < sizeof(block); i++) {
-		block[i] = OPAD ^ (i < keylen ? key[i] : 0);
-	}
-	SHA1Reset(&outer);
-	SHA1Input(&outer, (uint8_t const *)block, 64);
-	SHA1Input(&outer, (uint8_t const *)digest, 20);
-	SHA1Result(&outer, (uint8_t *)resbuf);
+	SHA1Reset(&sha1);
+	SHA1Input(&sha1, obuf, 64);
+	SHA1Input(&sha1, tmp, 20);
+	SHA1Result(&sha1, out);
 }
 
 std::string oauth::sign_hmac_sha1(std::string const &m, std::string const &k)
 {
+	uint8_t key[20];
 	uint8_t result[20];
-	hmac_sha1((uint8_t const *)k.c_str(), k.size(), (uint8_t const *)m.c_str(), m.size(), result);
+
+	SHA1Context sha1;
+	SHA1Reset(&sha1);
+	SHA1Input(&sha1, (uint8_t const *)k.c_str(), k.size());
+	SHA1Result(&sha1, key);
+
+	hmac_sha1(key, 20, (uint8_t const *)m.c_str(), m.size(), result);
 	std::vector<char> vec;
 	base64_encode((char const *)result, 20, &vec);
 	return to_stdstr(vec);
