@@ -17,8 +17,8 @@ static void url_encode_(char const *ptr, char const *end, std::vector<char> *out
 		ptr++;
 		if (isalnum(c) || strchr("_.-~", c)) {
 			print(out, c);
-		} else if (c == ' ') {
-			print(out, '+');
+//		} else if (c == ' ') { // スペースも16進エンコードする
+//			print(out, '+');
 		} else {
 			char tmp[10];
 			sprintf(tmp, "%%%02X", c);
