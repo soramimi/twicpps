@@ -16,14 +16,11 @@ void oauth::hmac_sha1(uint8_t const *key, size_t keylen, uint8_t const *in, size
 
 	uint8_t ibuf[64];
 	uint8_t obuf[64];
-	memset(ibuf, 0, 64);
-	memset(obuf, 0, 64);
-	memcpy(ibuf, key, keylen);
-	memcpy(obuf, key, keylen);
 
-	for (int i = 0; i < 64; i++) {
-		ibuf[i] ^= 0x36;
-		obuf[i] ^= 0x5c;
+	for (size_t i = 0; i < 64; i++) {
+		uint8_t c = i < keylen ? key[i] : 0;
+		ibuf[i] = c ^ 0x36;
+		obuf[i] = c ^ 0x5c;
 	}
 
 	SHA1Reset(&sha1);

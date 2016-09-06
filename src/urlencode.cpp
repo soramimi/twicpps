@@ -17,7 +17,7 @@ static void url_encode_(char const *ptr, char const *end, std::vector<char> *out
 		ptr++;
 		if (isalnum(c) || strchr("_.-~", c)) {
 			print(out, c);
-//		} else if (c == ' ') { // スペースも16進エンコードする
+//		} else if (c == ' ') { // if the character is a space, it is encoded in a hexadecimal instead of a plus mark.
 //			print(out, '+');
 		} else {
 			char tmp[10];
@@ -93,7 +93,7 @@ static void url_decode_(char const *ptr, char const *end, std::vector<char> *out
 			tmp[0] = ptr[0];
 			tmp[1] = ptr[1];
 			tmp[2] = 0;
-			c = strtol(tmp, NULL, 16);
+			c = strtol(tmp, nullptr, 16);
 			ptr += 2;
 		}
 		print(out, c);

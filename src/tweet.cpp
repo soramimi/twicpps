@@ -86,8 +86,10 @@ bool TwitterClient::request(std::string const &url, const RequestOption &opt, st
 	} else if (opt.method == RequestOption::POST) {
 		WebClient::Post postdata;
 		if (opt.upload_path.empty()) {
+			// www form urlencoded
 			WebClient::make_application_www_form_urlencoded(opt.post_begin, opt.post_end, &postdata);
 		} else {
+			// multi part form data
 			std::vector<char> filedata;
 			int fd = open(opt.upload_path.c_str(), O_RDONLY | O_BINARY);
 			if (fd >= 0) {
