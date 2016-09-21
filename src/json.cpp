@@ -119,54 +119,56 @@ int JSON::parse_value(const char *begin, const char *end, JSON::Node *node)
 	char const *ptr = begin;
 	int n;
 	ptr += scan_space(ptr, end);
-	if (*ptr == '[') {
-		ptr++;
-		node->type = Type::Array;
-		n = parse_array(ptr, end, false, &node->children);
-		ptr += n;
-		if (ptr < end && *ptr == ']') {
+	if (ptr < end) {
+		if (*ptr == '[') {
 			ptr++;
-			return ptr - begin;
-		}
-	} else if (*ptr == '{') {
-		ptr++;
-		node->type = Type::Object;
-		n = parse_array(ptr, end, true, &node->children);
-		ptr += n;
-		if (ptr < end && *ptr == '}') {
-			ptr++;
-			return ptr - begin;
-		}
-	} else if (*ptr == '\"') {
-		n = parse_string(ptr, end, &node->value);
-		if (n > 0) {
+			node->type = Type::Array;
+			n = parse_array(ptr, end, false, &node->children);
 			ptr += n;
-			node->type = Type::String;
-			return ptr - begin;
-		}
-	} else {
-		char const *left = ptr;
-		while (ptr < end) {
-			int c = *ptr & 0xff;
-			if (isspace(c)) break;
-			if (strchr("[]{},:\"", c)) break;
-			ptr++;
-		}
-		if (left < ptr) {
-			std::string value(left, ptr);
-			if (value == "null") {
-				node->type = Type::Null;
-			} else if (value == "false") {
-				node->type = Type::Boolean;
-				node->value = "0";
-			} else if (value == "true") {
-				node->type = Type::Boolean;
-				node->value = "1";
-			} else {
-				node->type = Type::Number;
-				node->value = value;
+			if (ptr < end && *ptr == ']') {
+				ptr++;
+				return ptr - begin;
 			}
-			return ptr - begin;
+		} else if (*ptr == '{') {
+			ptr++;
+			node->type = Type::Object;
+			n = parse_array(ptr, end, true, &node->children);
+			ptr += n;
+			if (ptr < end && *ptr == '}') {
+				ptr++;
+				return ptr - begin;
+			}
+		} else if (*ptr == '\"') {
+			n = parse_string(ptr, end, &node->value);
+			if (n > 0) {
+				ptr += n;
+				node->type = Type::String;
+				return ptr - begin;
+			}
+		} else {
+			char const *left = ptr;
+			while (ptr < end) {
+				int c = *ptr & 0xff;
+				if (isspace(c)) break;
+				if (strchr("[]{},:\"", c)) break;
+				ptr++;
+			}
+			if (left < ptr) {
+				std::string value(left, ptr);
+				if (value == "null") {
+					node->type = Type::Null;
+				} else if (value == "false") {
+					node->type = Type::Boolean;
+					node->value = "0";
+				} else if (value == "true") {
+					node->type = Type::Boolean;
+					node->value = "1";
+				} else {
+					node->type = Type::Number;
+					node->value = value;
+				}
+				return ptr - begin;
+			}
 		}
 	}
 	return 0;

@@ -514,18 +514,19 @@ bool WebClient::http_get(URL const &uri, Post const *post, RequestOption const &
 bool WebClient::https_get(const URL &uri, Post const *post, RequestOption const &opt, std::vector<char> *out)
 {
 #if USE_OPENSSL
-	auto sslctx = [&](){ return pv->webcx->pv->ctx; };
 
 	if (!pv->webcx || !pv->webcx->pv->ctx) {
 		output_debug_string("SSL context is null.\n");
 		return false;
 	}
 
+	auto sslctx = [&](){ return pv->webcx->pv->ctx; };
+
 	clear_error();
 	out->clear();
 
 	auto get_ssl_error = []()->std::string{
-			char tmp[1000];
+		char tmp[1000];
 		unsigned long e = ERR_get_error();
 		ERR_error_string_n(e, tmp, sizeof(tmp));
 		return tmp;
@@ -662,9 +663,9 @@ bool WebClient::https_get(const URL &uri, Post const *post, RequestOption const 
 
 	std::string request = make_http_request(uri, post);
 
-	auto SEND = [&](SSL *ssl, char const *ptr, int len){
+	auto SEND = [&](char const *ptr, int len){
 		while (len > 0) {
-			int n = SSL_write(ssl, ptr, len);
+			int n = SSL_write(pv->ssl, ptr, len);
 			if (n < 1 || n > len) {
 				throw WebClient::Error(get_ssl_error());
 			}
@@ -673,9 +674,9 @@ bool WebClient::https_get(const URL &uri, Post const *post, RequestOption const 
 		}
 	};
 
-	SEND(pv->ssl, request.c_str(), (int)request.size());
+	SEND(request.c_str(), (int)request.size());
 	if (post && !post->data.empty()) {
-		SEND(pv->ssl, (char const *)&post->data[0], (int)post->data.size());
+		SEND((char const *)&post->data[0], (int)post->data.size());
 	}
 
 	pv->crlf_state = 0;

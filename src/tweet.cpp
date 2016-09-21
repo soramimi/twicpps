@@ -129,8 +129,8 @@ bool TwitterClient::request(std::string const &url, const RequestOption &opt, st
 	WebClient::Response const &res = client.response();
 	if (res.header.size() > 0) {
 		int a, b, c;
-		sscanf(res.header[0].c_str(), "HTTP/%u.%u %u", &a, &b, &c);
-		if (c == 200) {
+		int n = sscanf(res.header[0].c_str(), "HTTP/%u.%u %u", &a, &b, &c);
+		if (n == 3 && c == 200) {
 			if (reply && !res.content.empty()) {
 				char const *p = (char const *)&res.content[0];
 				*reply = std::string(p, p + res.content.size());
