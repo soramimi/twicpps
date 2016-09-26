@@ -38,6 +38,8 @@ typedef void SSL;
 typedef void SSL_CTX;
 #endif
 
+#include "charvec.h"
+
 #define USER_AGENT "Generic Web Client"
 
 struct WebContext::Private {
@@ -53,7 +55,7 @@ WebClient::URL::URL(std::string const &addr)
 	left = str;
 	right = strstr(left, "://");
 	if (right) {
-		scheme_.assign(str, right - str);
+		data.scheme.assign(str, right - str);
 		left = right + 3;
 	}
 	right = strchr(left, '/');
@@ -71,14 +73,14 @@ WebClient::URL::URL(std::string const &addr)
 				}
 				q++;
 			}
-			host_.assign(left, p - left);
+			data.host.assign(left, p - left);
 			if (n > 0 && n < 65536) {
-				port_ = n;
+				data.port = n;
 			}
 		} else {
-			host_.assign(left, right - left);
+			data.host.assign(left, right - left);
 		}
-		path_ = right;
+		data.path = right;
 	}
 }
 
@@ -104,6 +106,7 @@ struct WebClient::Private {
 	int crlf_state = 0;
 	size_t content_offset;
 	std::string last_host_name;
+	int last_port = 0;
 	bool keep_alive = false;
 	socket_t sock = INVALID_SOCKET;
 	SSL *ssl = nullptr;
@@ -173,12 +176,12 @@ void WebClient::clear_error()
 	pv->error = Error();
 }
 
-int WebClient::get_port(URL const *uri, char const *scheme, char const *protocol)
+int WebClient::get_port(URL const *url, char const *scheme, char const *protocol)
 {
-	int port = uri->port();
+	int port = url->port();
 	if (port < 1 || port > 65535) {
 		struct servent *s;
-		s = getservbyname(uri->scheme().c_str(), protocol);
+		s = getservbyname(url->scheme().c_str(), protocol);
 		if (s) {
 			port = ntohs(s->s_port);
 		} else {
@@ -201,13 +204,13 @@ static inline std::string to_s(size_t n)
 	return tmp;
 }
 
-void WebClient::set_default_header(URL const &uri, Post const *post, RequestOption const &opt)
+void WebClient::set_default_header(URL const &url, Post const *post, RequestOption const &opt)
 {
 	std::vector<std::string> header;
 	auto AddHeader = [&](std::string const &s){
 		header.push_back(s);
 	};
-	AddHeader("Host: " + uri.host());
+	AddHeader("Host: " + url.host());
 	AddHeader("User-Agent: " USER_AGENT);
 	AddHeader("Accept: */*");
 	if (opt.keep_alive) {
@@ -235,12 +238,12 @@ void WebClient::set_default_header(URL const &uri, Post const *post, RequestOpti
 	pv->request_header = std::move(header);
 }
 
-std::string WebClient::make_http_request(URL const &uri, Post const *post)
+std::string WebClient::make_http_request(URL const &url, Post const *post)
 {
 	std::string str;
 
 	str = post ? "POST " : "GET ";
-	str += uri.path();
+	str += url.path();
 	str += " HTTP/1.0";
 	str += "\r\n";
 
@@ -453,14 +456,15 @@ void WebClient::receive_(RequestOption const &opt, std::function<int(char *, int
 	}
 }
 
-bool WebClient::http_get(URL const &uri, Post const *post, RequestOption const &opt, std::vector<char> *out)
+bool WebClient::http_get(URL const &url, Post const *post, RequestOption const &opt, std::vector<char> *out)
 {
 	clear_error();
 	out->clear();
 
-	std::string hostname = uri.host();
+	std::string hostname = url.host();
+	int port = url.port();
 
-	pv->keep_alive = opt.keep_alive && hostname == pv->last_host_name;
+	pv->keep_alive = opt.keep_alive && hostname == pv->last_host_name && port == pv->last_port;
 	if (!pv->keep_alive) close();
 
 	if (pv->sock == INVALID_SOCKET) {
@@ -477,7 +481,7 @@ bool WebClient::http_get(URL const &uri, Post const *post, RequestOption const &
 
 		memcpy((char *)&server.sin_addr, servhost->h_addr, servhost->h_length);
 
-		server.sin_port = htons(get_port(&uri, "http", "tcp"));
+		server.sin_port = htons(get_port(&url, "http", "tcp"));
 
 		pv->sock = socket(AF_INET, SOCK_STREAM, 0);
 		if (pv->sock == INVALID_SOCKET) {
@@ -489,10 +493,11 @@ bool WebClient::http_get(URL const &uri, Post const *post, RequestOption const &
 		}
 	}
 	pv->last_host_name = hostname;
+	pv->last_port = port;
 
-	set_default_header(uri, post, opt);
+	set_default_header(url, post, opt);
 
-	std::string request = make_http_request(uri, post);
+	std::string request = make_http_request(url, post);
 
 	send_(pv->sock, request.c_str(), (int)request.size());
 	if (post && !post->data.empty()) {
@@ -511,7 +516,7 @@ bool WebClient::http_get(URL const &uri, Post const *post, RequestOption const &
 	return true;
 }
 
-bool WebClient::https_get(const URL &uri, Post const *post, RequestOption const &opt, std::vector<char> *out)
+bool WebClient::https_get(const URL &url, Post const *post, RequestOption const &opt, std::vector<char> *out)
 {
 #if USE_OPENSSL
 
@@ -532,9 +537,10 @@ bool WebClient::https_get(const URL &uri, Post const *post, RequestOption const 
 		return tmp;
 	};
 
-	std::string hostname = uri.host();
+	std::string hostname = url.host();
+	int  port = url.port();
 
-	pv->keep_alive = opt.keep_alive && hostname == pv->last_host_name;
+	pv->keep_alive = opt.keep_alive && hostname == pv->last_host_name && port == pv->last_port;
 	if (!pv->keep_alive) close();
 
 	if (pv->sock == INVALID_SOCKET || !pv->ssl) {
@@ -542,7 +548,7 @@ bool WebClient::https_get(const URL &uri, Post const *post, RequestOption const 
 		struct hostent *servhost;
 		struct sockaddr_in server;
 
-		servhost = gethostbyname(uri.host().c_str());
+		servhost = gethostbyname(url.host().c_str());
 		if (!servhost) {
 			throw Error("gethostbyname failed.");
 		}
@@ -552,7 +558,7 @@ bool WebClient::https_get(const URL &uri, Post const *post, RequestOption const 
 
 		memcpy((char *)&server.sin_addr, servhost->h_addr, servhost->h_length);
 
-		server.sin_port = htons(get_port(&uri, "https", "tcp"));
+		server.sin_port = htons(get_port(&url, "https", "tcp"));
 
 		pv->sock = socket(AF_INET, SOCK_STREAM, 0);
 		if (pv->sock == INVALID_SOCKET) {
@@ -658,10 +664,11 @@ bool WebClient::https_get(const URL &uri, Post const *post, RequestOption const 
 		}
 	}
 	pv->last_host_name = hostname;
+	pv->last_port = port;
 
-	set_default_header(uri, post, opt);
+	set_default_header(url, post, opt);
 
-	std::string request = make_http_request(uri, post);
+	std::string request = make_http_request(url, post);
 
 	auto SEND = [&](char const *ptr, int len){
 		while (len > 0) {
@@ -693,7 +700,7 @@ bool WebClient::https_get(const URL &uri, Post const *post, RequestOption const 
 	return false;
 }
 
-void WebClient::get(URL const &uri, Post const *post, Response *out, WebClientHandler *handler)
+void WebClient::get(URL const &url, Post const *post, Response *out, WebClientHandler *handler)
 {
 	*out = Response();
 	try {
@@ -704,12 +711,12 @@ void WebClient::get(URL const &uri, Post const *post, Response *out, WebClientHa
 		opt.keep_alive = pv->webcx->pv->use_keep_alive;
 		opt.handler = handler;
 		std::vector<char> res;
-		if (uri.isssl()) {
+		if (url.isssl()) {
 #if USE_OPENSSL
-			https_get(uri, post, opt, &res);
+			https_get(url, post, opt, &res);
 #endif
 		} else {
-			http_get(uri, post, opt, &res);
+			http_get(url, post, opt, &res);
 		}
 		if (!res.empty()) {
 			char const *begin = &res[0];
@@ -835,15 +842,15 @@ char const *WebClient::content_data() const
 	return &pv->response.content[0];
 }
 
-int WebClient::get(URL const &uri, WebClientHandler *handler)
+int WebClient::get(URL const &url, WebClientHandler *handler)
 {
-	get(uri, nullptr, &pv->response, handler);
+	get(url, nullptr, &pv->response, handler);
 	return pv->response.code;
 }
 
-int WebClient::post(URL const &uri, Post const *post, WebClientHandler *handler)
+int WebClient::post(URL const &url, Post const *post, WebClientHandler *handler)
 {
-	get(uri, post, &pv->response, handler);
+	get(url, post, &pv->response, handler);
 	return pv->response.code;
 }
 
@@ -872,27 +879,11 @@ WebClient::Response const &WebClient::response() const
 	return pv->response;
 }
 
-static void write(std::vector<char> *out, char const *begin, char const *end)
-{
-	out->insert(out->end(), begin, end);
-}
-
-static void write(std::vector<char> *out, char const *p, int n = -1)
-{
-	if (n < 0) n = strlen(p);
-	write(out, p, p + n);
-}
-
-static void write(std::vector<char> *out, std::string const &str)
-{
-	write(out, str.c_str(), (int)str.size());
-}
-
 void WebClient::make_application_www_form_urlencoded(char const *begin, char const *end, WebClient::Post *out)
 {
 	*out = WebClient::Post();
 	out->content_type = CT_APPLICATION_X_WWW_FORM_URLENCODED;
-	write(&out->data, begin, end - begin);
+	print(&out->data, begin, end - begin);
 }
 
 void WebClient::make_multipart_form_data(std::vector<Part> const &parts, WebClient::Post *out, std::string const &boundary)
@@ -902,9 +893,9 @@ void WebClient::make_multipart_form_data(std::vector<Part> const &parts, WebClie
 	out->boundary = boundary;
 
 	for (Part const &part : parts) {
-		write(&out->data, "--");
-		write(&out->data, out->boundary);
-		write(&out->data, "\r\n");
+		print(&out->data, "--");
+		print(&out->data, out->boundary);
+		print(&out->data, "\r\n");
 		if (!part.content_disposition.type.empty()) {
 			ContentDisposition const &cd = part.content_disposition;
 			std::string s;
@@ -919,23 +910,23 @@ void WebClient::make_multipart_form_data(std::vector<Part> const &parts, WebClie
 			};
 			Add("name", cd.name);
 			Add("filename", cd.filename);
-			write(&out->data, s);
-			write(&out->data, "\r\n");
+			print(&out->data, s);
+			print(&out->data, "\r\n");
 		}
 		if (!part.content_type.empty()) {
-			write(&out->data, "Content-Type: " + part.content_type + "\r\n");
+			print(&out->data, "Content-Type: " + part.content_type + "\r\n");
 		}
 		if (!part.content_transfer_encoding.empty()) {
-			write(&out->data, "Content-Transfer-Encoding: " + part.content_transfer_encoding + "\r\n");
+			print(&out->data, "Content-Transfer-Encoding: " + part.content_transfer_encoding + "\r\n");
 		}
-		write(&out->data, "\r\n");
-		write(&out->data, part.data, part.size);
-		write(&out->data, "\r\n");
+		print(&out->data, "\r\n");
+		print(&out->data, part.data, part.size);
+		print(&out->data, "\r\n");
 	}
 
-	write(&out->data, "--");
-	write(&out->data, out->boundary);
-	write(&out->data, "--\r\n");
+	print(&out->data, "--");
+	print(&out->data, out->boundary);
+	print(&out->data, "--\r\n");
 }
 
 void WebClient::make_multipart_form_data(char const *data, size_t size, WebClient::Post *out, std::string const &boundary)
@@ -979,7 +970,8 @@ bool WebContext::load_cacert(char const *path)
 #if USE_OPENSSL
 	int r = SSL_CTX_load_verify_locations(pv->ctx, path, 0);
 	return r == 1;
-#endif
+#else
 	return false;
+#endif
 }
 

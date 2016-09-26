@@ -33,16 +33,18 @@ class WebClient {
 public:
 	class URL {
 	private:
-		std::string scheme_;
-		std::string host_;
-		int port_ = 0;
-		std::string path_;
+		struct Data {
+			std::string scheme;
+			std::string host;
+			int port = 0;
+			std::string path;
+		} data;
 	public:
 		URL(const std::string &str);
-		std::string const &scheme() const { return scheme_; }
-		std::string const &host() const { return host_; }
-		int port() const { return port_; }
-		std::string const &path() const { return path_; }
+		std::string const &scheme() const { return data.scheme; }
+		std::string const &host() const { return data.host; }
+		int port() const { return data.port; }
+		std::string const &path() const { return data.path; }
 		bool isssl() const;
 	};
 
@@ -112,14 +114,14 @@ private:
 	struct Private;
 	Private *pv;
 	void clear_error();
-	static int get_port(URL const *uri, char const *scheme, char const *protocol);
-	void set_default_header(URL const &uri, Post const *post, const RequestOption &opt);
-	std::string make_http_request(URL const &uri, Post const *post);
+	static int get_port(URL const *url, char const *scheme, char const *protocol);
+	void set_default_header(URL const &url, Post const *post, const RequestOption &opt);
+	std::string make_http_request(URL const &url, Post const *post);
 	void parse_http_header(char const *begin, char const *end, std::vector<std::string> *header);
 	void parse_http_header(char const *begin, char const *end, Response *out);
-	bool http_get(URL const &uri, Post const *post, RequestOption const &opt, std::vector<char> *out);
-	bool https_get(URL const &uri, Post const *post, RequestOption const &opt, std::vector<char> *out);
-	void get(URL const &uri, Post const *post, Response *out, WebClientHandler *handler);
+	bool http_get(URL const &url, Post const *post, RequestOption const &opt, std::vector<char> *out);
+	bool https_get(URL const &url, Post const *post, RequestOption const &opt, std::vector<char> *out);
+	void get(URL const &url, Post const *post, Response *out, WebClientHandler *handler);
 	static void parse_header(std::vector<std::string> const *header, WebClient::Response *res);
 	static std::string header_value(std::vector<std::string> const *header, const std::string &name);
 	void append(const char *ptr, size_t len, std::vector<char> *out, WebClientHandler *handler);
@@ -136,8 +138,8 @@ public:
 	void operator = (WebClient const &) = delete;
 
 	Error const &error() const;
-	int get(URL const &uri, WebClientHandler *handler = nullptr);
-	int post(URL const &uri, Post const *post, WebClientHandler *handler = nullptr);
+	int get(URL const &url, WebClientHandler *handler = nullptr);
+	int post(URL const &url, Post const *post, WebClientHandler *handler = nullptr);
 	void close();
 	void add_header(std::string const &text);
 	Response const &response() const;
