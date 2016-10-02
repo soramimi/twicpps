@@ -244,7 +244,7 @@ std::string JSON::double_quoted_string(const std::string &str)
 		case '\f': backslash('f'); break;
 		case '\n': backslash('n'); break;
 		case '\r': backslash('r'); break;
-		case '\t': backslash('r'); break;
+		case '\t': backslash('t'); break;
 		default:
 			vec.push_back(*ptr);
 			break;
