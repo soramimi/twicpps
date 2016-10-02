@@ -30,7 +30,7 @@ void print(std::vector<char> *out, std::string const &s)
 std::string to_stdstr(std::vector<char> const &vec)
 {
 	if (!vec.empty()) {
-		char const *begin = &vec.at(0);
+		char const *begin = &vec[0];
 		char const *end = begin + vec.size();
 		return std::string(begin, end);
 	}

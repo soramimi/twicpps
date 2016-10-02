@@ -5,6 +5,7 @@
 #include <vector>
 
 class JSON {
+	friend class OreLang;
 public:
 	enum class Type {
 		Unknown,

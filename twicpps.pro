@@ -18,9 +18,9 @@ SOURCES += \
     src/sha1.c \
     src/webclient.cpp \
     src/urlencode.cpp \
-    src/charvec.cpp \
     src/base64.cpp \
-    src/json.cpp
+    src/json.cpp \
+    src/charvec.cpp
 
 HEADERS += \
     src/oauth.h \
@@ -28,6 +28,6 @@ HEADERS += \
     src/tweet.h \
     src/webclient.h \
     src/urlencode.h \
-    src/charvec.h \
     src/base64.h \
-    src/json.h
+    src/json.h \
+    src/charvec.h
